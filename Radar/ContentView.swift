@@ -23,6 +23,7 @@ struct ContentView: View {
                 }
                 .tag(2)
         }
+        .accentColor(.green) // Change the tab bar accent color
     }
 }
 
@@ -35,43 +36,63 @@ struct FoodScanView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 20) {
                 if let image = capturedImage {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
+                        .cornerRadius(10)
+                        .shadow(radius: 10)
                     
                     Text("Dimensions: \(foodDimensions)")
+                        .font(.headline)
+                        .padding()
+                    
                     Text("Recognized Food: \(recognizedFood)")
+                        .font(.title2)
+                        .padding()
                     
                     if !nutritionInfo.isEmpty {
                         Text("Nutrition Info:")
+                            .font(.headline)
                         Text(nutritionInfo)
                             .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
                     }
                     
-                    Button("Analyze Food") {
-                        analyzeFood()
+                    Button(action: analyzeFood) {
+                        Text("Analyze Food")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
                     }
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .padding(.horizontal)
                 } else {
-                    Button("Measure and Capture Food") {
-                        showARView = true
+                    Button(action: { showARView = true }) {
+                        Text("Measure and Capture Food")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
                     }
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .padding(.horizontal)
                 }
             }
+            .padding()
             .sheet(isPresented: $showARView) {
                 ARMeasurementView(capturedImage: $capturedImage, foodDimensions: $foodDimensions)
             }
-            .navigationTitle("Scan Food")
+            .navigationTitle("Foooooood")
         }
     }
     
@@ -87,16 +108,56 @@ struct DailyLogView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(foodEntries) { entry in
-                    VStack(alignment: .leading) {
-                        Text(entry.foodName)
-                            .font(.headline)
-                        Text("Calories: \(entry.calories)")
-                            .font(.subheadline)
+            VStack {
+                HStack {
+                    Text("Today")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Text("19:44")
+                        .font(.title2)
+                }
+                .padding()
+                
+                Text("You can still eat 2,400 calories")
+                    .font(.headline)
+                    .padding(.bottom, 5)
+                
+                ProgressView(value: 0, total: 2400)
+                    .progressViewStyle(LinearProgressViewStyle(tint: .green))
+                    .padding(.horizontal)
+                
+                HStack {
+                    MacroView(macroName: "Carbs", macroValue: 0, macroLeft: 330, color: .red)
+                    MacroView(macroName: "Protein", macroValue: 0, macroLeft: 120, color: .blue)
+                    MacroView(macroName: "Fat", macroValue: 0, macroLeft: 66, color: .orange)
+                }
+                .padding(.vertical)
+                
+                if foodEntries.isEmpty {
+                    Spacer()
+                    Image(systemName: "applelogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 100, height: 100)
+                        .foregroundColor(.green)
+                    Text("You have nothing logged for this day")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Spacer()
+                } else {
+                    List {
+                        ForEach(foodEntries) { entry in
+                            VStack(alignment: .leading) {
+                                Text(entry.foodName)
+                                    .font(.headline)
+                                Text("Calories: \(entry.calories)")
+                                    .font(.subheadline)
+                            }
+                        }
+                        .onDelete(perform: deleteEntry)
                     }
                 }
-                .onDelete(perform: deleteEntry)
             }
             .navigationTitle("Daily Log")
             .toolbar {
@@ -107,6 +168,33 @@ struct DailyLogView: View {
     
     func deleteEntry(at offsets: IndexSet) {
         foodEntries.remove(atOffsets: offsets)
+    }
+}
+
+struct MacroView: View {
+    var macroName: String
+    var macroValue: Double
+    var macroLeft: Int
+    var color: Color
+    
+    var body: some View {
+        VStack {
+            Text("\(Int(macroValue))%")
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            Text(macroName)
+                .font(.headline)
+                .foregroundColor(color)
+            Text("\(macroLeft)g left")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .shadow(radius: 5)
     }
 }
 
@@ -140,9 +228,17 @@ struct ProfileView: View {
                     }
                 }
                 
-                Button("Save Profile") {
-                    saveProfile()
+                Button(action: saveProfile) {
+                    Text("Save Profile")
+                        .font(.headline)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
                 }
+                .padding(.horizontal)
             }
             .navigationTitle("Profile")
         }
