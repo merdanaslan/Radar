@@ -33,8 +33,7 @@ struct ContentView: View {
 struct FoodScanView: View {
     @State private var showImagePicker = false
     @State private var capturedImage: UIImage?
-    @State private var recognizedFood: String = ""
-    @State private var nutritionInfo: String = ""
+    @State private var foodAnalysis: FoodAnalysis?
     @State private var isAnalyzing = false
     @EnvironmentObject var foodLog: FoodLog
     
@@ -46,65 +45,39 @@ struct FoodScanView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
-                        .cornerRadius(10)
-                        .shadow(radius: 10)
                     
                     if isAnalyzing {
                         ProgressView("Analyzing...")
                     } else {
                         Button(action: analyzeFood) {
                             Text("Analyze Food")
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                                .shadow(radius: 5)
                         }
-                        .padding(.horizontal)
                     }
                     
-                    if !recognizedFood.isEmpty {
-                        Text("Recognized Food: \(recognizedFood)")
-                            .font(.title2)
+                    if let analysis = foodAnalysis {
+                        if analysis.foodName == "No food detected" {
+                            Text("No food detected in the image")
+                        } else {
+                            VStack(alignment: .leading) {
+                                Text("Food: \(analysis.foodName)")
+                                Text("Calories: \(analysis.calories)")
+                                Text("Protein: \(analysis.protein)g")
+                                Text("Carbs: \(analysis.carbs)g")
+                                Text("Fat: \(analysis.fat)g")
+                            }
                             .padding()
-                        
-                        Text("Nutrition Info:")
-                            .font(.headline)
-                        Text(nutritionInfo)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
-                            .shadow(radius: 5)
-                        
-                        Button(action: logFood) {
-                            Text("Log Food")
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                                .shadow(radius: 5)
+                            
+                            Button(action: logFood) {
+                                Text("Log Food")
+                            }
                         }
-                        .padding(.horizontal)
                     }
                 } else {
                     Button(action: { showImagePicker = true }) {
                         Text("Take Photo")
-                            .font(.headline)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                            .shadow(radius: 5)
                     }
-                    .padding(.horizontal)
                 }
             }
-            .padding()
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $capturedImage)
             }
@@ -121,8 +94,7 @@ struct FoodScanView: View {
                 isAnalyzing = false
                 switch result {
                 case .success(let analysis):
-                    recognizedFood = analysis.foodName
-                    nutritionInfo = analysis.nutritionInfo
+                    foodAnalysis = analysis
                 case .failure(let error):
                     print("Error analyzing food: \(error.localizedDescription)")
                 }
@@ -131,11 +103,11 @@ struct FoodScanView: View {
     }
     
     func logFood() {
-        let newEntry = FoodEntry(foodName: recognizedFood, calories: 0) // You might want to parse calories from nutritionInfo
+        guard let analysis = foodAnalysis else { return }
+        let newEntry = FoodEntry(foodName: analysis.foodName, calories: analysis.calories, image: capturedImage)
         foodLog.addEntry(newEntry)
         capturedImage = nil
-        recognizedFood = ""
-        nutritionInfo = ""
+        foodAnalysis = nil
     }
 }
 
@@ -184,6 +156,7 @@ struct FoodEntry: Identifiable {
     let id = UUID()
     let foodName: String
     let calories: Int
+    let image: UIImage?
 }
 
 struct DailyLogView: View {
@@ -193,11 +166,19 @@ struct DailyLogView: View {
         NavigationView {
             List {
                 ForEach(foodLog.entries) { entry in
-                    VStack(alignment: .leading) {
-                        Text(entry.foodName)
-                            .font(.headline)
-                        Text("Calories: \(entry.calories)")
-                            .font(.subheadline)
+                    HStack {
+                        if let image = entry.image {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50, height: 50)
+                        }
+                        VStack(alignment: .leading) {
+                            Text(entry.foodName)
+                                .font(.headline)
+                            Text("Calories: \(entry.calories)")
+                                .font(.subheadline)
+                        }
                     }
                 }
                 .onDelete(perform: deleteEntry)
@@ -285,7 +266,7 @@ class OpenAIService {
         print("API Key loaded successfully")
     }
     
-    func analyzeImage(_ image: UIImage, completion: @escaping (Result<(foodName: String, nutritionInfo: String), Error>) -> Void) {
+    func analyzeImage(_ image: UIImage, completion: @escaping (Result<FoodAnalysis, Error>) -> Void) {
         guard let imageData = image.jpegData(compressionQuality: 0.5) else {
             print("Failed to convert image to data")
             completion(.failure(NSError(domain: "Image Conversion", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])))
@@ -307,7 +288,7 @@ class OpenAIService {
                     "content": [
                         [
                             "type": "text",
-                            "text": "Analyze this image and provide the name of the food and its nutritional information."
+                            "text": "Analyze this image and provide the name of the food and its nutritional information in the following JSON format: {\"foodName\": \"Name of the food\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}. If the image doesn't contain food or nutritional information, return {\"foodName\": \"No food detected\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}."
                         ],
                         [
                             "type": "image_url",
@@ -356,14 +337,22 @@ class OpenAIService {
                        let firstChoice = choices.first,
                        let message = firstChoice["message"] as? [String: Any],
                        let content = message["content"] as? String {
-                        let lines = content.components(separatedBy: .newlines)
-                        let foodName = lines.first ?? "Unknown Food"
-                        let nutritionInfo = lines.dropFirst().joined(separator: "\n")
-                        print("Successfully parsed response. Food name: \(foodName)")
-                        completion(.success((foodName: foodName, nutritionInfo: nutritionInfo)))
+                        // Remove code block markers and extract JSON
+                        let jsonString = content.replacingOccurrences(of: "```json", with: "")
+                            .replacingOccurrences(of: "```", with: "")
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        if let data = jsonString.data(using: .utf8),
+                           let foodAnalysis = try? JSONDecoder().decode(FoodAnalysis.self, from: data) {
+                            print("Successfully parsed response. Food name: \(foodAnalysis.foodName)")
+                            completion(.success(foodAnalysis))
+                        } else {
+                            print("Failed to parse the expected structure from the JSON")
+                            completion(.failure(NSError(domain: "Parsing Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse the response"])))
+                        }
                     } else {
-                        print("Failed to parse the expected structure from the JSON")
-                        completion(.failure(NSError(domain: "Parsing Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse the response"])))
+                        print("Failed to extract content from the JSON response")
+                        completion(.failure(NSError(domain: "Parsing Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to extract content from the response"])))
                     }
                 } else {
                     print("Failed to parse JSON from the response data")
@@ -378,4 +367,12 @@ class OpenAIService {
             }
         }.resume()
     }
+}
+
+struct FoodAnalysis: Codable {
+    let foodName: String
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
 }
