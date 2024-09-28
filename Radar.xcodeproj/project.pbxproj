@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FC996D5B2CA7E7BE00BEF324 /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = FC996D5A2CA7E7B500BEF324 /* Config.xcconfig.template */; };
+		FC996D5D2CA7EFDC00BEF324 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = FC996D5C2CA7EFDC00BEF324 /* Config.plist */; };
+		FC996D5F2CA8186C00BEF324 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = FC996D5E2CA8186500BEF324 /* .gitignore */; };
+		FC996D612CA818A700BEF324 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = FC996D602CA8189E00BEF324 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		FCCB95042CA5CBD4002A4A87 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +31,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FC996D5A2CA7E7B500BEF324 /* Config.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.xcconfig.template; sourceTree = "<group>"; };
+		FC996D5C2CA7EFDC00BEF324 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Config.plist; sourceTree = "<group>"; };
+		FC996D5E2CA8186500BEF324 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		FC996D602CA8189E00BEF324 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FCCB94F32CA5CBD1002A4A87 /* Radar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Radar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCCB95032CA5CBD4002A4A87 /* RadarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCCB950D2CA5CBD4002A4A87 /* RadarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +86,10 @@
 		FCCB94EA2CA5CBD1002A4A87 = {
 			isa = PBXGroup;
 			children = (
+				FC996D602CA8189E00BEF324 /* README.md */,
+				FC996D5E2CA8186500BEF324 /* .gitignore */,
+				FC996D5C2CA7EFDC00BEF324 /* Config.plist */,
+				FC996D5A2CA7E7B500BEF324 /* Config.xcconfig.template */,
 				FCCB94F52CA5CBD1002A4A87 /* Radar */,
 				FCCB95062CA5CBD4002A4A87 /* RadarTests */,
 				FCCB95102CA5CBD4002A4A87 /* RadarUITests */,
@@ -212,6 +227,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FC996D612CA818A700BEF324 /* README.md in Resources */,
+				FC996D5F2CA8186C00BEF324 /* .gitignore in Resources */,
+				FC996D5D2CA7EFDC00BEF324 /* Config.plist in Resources */,
+				FC996D5B2CA7E7BE00BEF324 /* Config.xcconfig.template in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +418,7 @@
 				DEVELOPMENT_TEAM = 7XGZCF54T5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to take photos of food for analysis";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,6 +449,7 @@
 				DEVELOPMENT_TEAM = 7XGZCF54T5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to take photos of food for analysis";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

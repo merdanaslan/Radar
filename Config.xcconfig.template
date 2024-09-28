@@ -1,0 +1,7 @@
+//
+//  Config.xcconfig.template
+//  Radar
+//
+//  Created by merdan aslan on 28.09.24.
+//
+OPENAI_API_KEY = your_api_key_here
