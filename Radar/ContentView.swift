@@ -307,7 +307,7 @@ struct SettingsView: View {
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
-    @Binding var isLoading: Bool // Add this line
+    @Binding var isLoading: Bool
     @Environment(\.presentationMode) private var presentationMode
     var foodLog: FoodLog
 
@@ -335,6 +335,8 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 self.parent.image = image
                 self.parent.isLoading = true // Start loading
+                self.parent.presentationMode.wrappedValue.dismiss() // Dismiss the image picker immediately
+                
                 OpenAIService.shared.analyzeImage(image) { result in
                     DispatchQueue.main.async {
                         self.parent.isLoading = false // Stop loading
@@ -351,7 +353,6 @@ struct ImagePicker: UIViewControllerRepresentable {
                         case .failure(let error):
                             print("Failed to analyze image: \(error.localizedDescription)")
                         }
-                        self.parent.presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
