@@ -4,116 +4,225 @@ import Foundation
 struct ContentView: View {
     @StateObject private var foodLog = FoodLog()
     @State private var selectedTab = 0
+    @State private var showImagePicker = false
+    @State private var capturedImage: UIImage?
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            FoodScanView()
-                .tabItem {
-                    Label("Scan Food", systemImage: "camera")
-                }
-                .tag(0)
+        ZStack {
+            TabView(selection: $selectedTab) {
+                HomeView()
+                    .tabItem {
+                        Label("Home", systemImage: "house")
+                    }
+                    .tag(0)
+                
+                AnalyticsView()
+                    .tabItem {
+                        Label("Analytics", systemImage: "chart.bar")
+                    }
+                    .tag(1)
+                
+                Text("Battle")
+                    .tabItem {
+                        Label("Battle", systemImage: "flag")
+                    }
+                    .tag(2)
+                
+                Text("Wallet")
+                    .tabItem {
+                        Label("Wallet", systemImage: "wallet.pass")
+                    }
+                    .tag(3)
+                
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+                    .tag(4)
+            }
+            .accentColor(.black)
             
-            DailyLogView()
-                .tabItem {
-                    Label("Daily Log", systemImage: "list.bullet")
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showImagePicker = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .background(Color.black)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 80)
                 }
-                .tag(1)
-            
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person")
-                }
-                .tag(2)
+            }
         }
-        .accentColor(.green)
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $capturedImage, foodLog: foodLog)
+        }
         .environmentObject(foodLog)
     }
 }
 
-struct FoodScanView: View {
-    @State private var showImagePicker = false
-    @State private var capturedImage: UIImage?
-    @State private var foodAnalysis: FoodAnalysis?
-    @State private var isAnalyzing = false
+struct HomeView: View {
     @EnvironmentObject var foodLog: FoodLog
+    @AppStorage("dailyCalories") private var dailyCalories = 2000
+    @AppStorage("dailyProtein") private var dailyProtein = 150
+    @AppStorage("dailyCarbs") private var dailyCarbs = 250
+    @AppStorage("dailyFat") private var dailyFat = 65
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                if let image = capturedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Text("Today")
+                            .font(.headline)
+                        Text("Yesterday")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.top)
                     
-                    if isAnalyzing {
-                        ProgressView("Analyzing...")
-                    } else {
-                        Button(action: analyzeFood) {
-                            Text("Analyze Food")
+                    HStack {
+                        NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories left", color: .orange)
+                            .frame(height: 150)
+                        
+                        VStack(spacing: 10) {
+                            NutrientInfoView(value: dailyProtein - foodLog.proteinConsumed, total: dailyProtein, title: "Protein left", color: .red)
+                            NutrientInfoView(value: dailyCarbs - foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs left", color: .yellow)
+                            NutrientInfoView(value: dailyFat - foodLog.fatConsumed, total: dailyFat, title: "Fat left", color: .blue)
                         }
                     }
                     
-                    if let analysis = foodAnalysis {
-                        if analysis.foodName == "No food detected" {
-                            Text("No food detected in the image")
-                        } else {
-                            VStack(alignment: .leading) {
-                                Text("Food: \(analysis.foodName)")
-                                Text("Calories: \(analysis.calories)")
-                                Text("Protein: \(analysis.protein)g")
-                                Text("Carbs: \(analysis.carbs)g")
-                                Text("Fat: \(analysis.fat)g")
-                            }
-                            .padding()
-                            
-                            Button(action: logFood) {
-                                Text("Log Food")
-                            }
-                        }
-                    }
-                } else {
-                    Button(action: { showImagePicker = true }) {
-                        Text("Take Photo")
+                    Text("Recently eaten")
+                        .font(.headline)
+                    
+                    ForEach(foodLog.entries.prefix(5)) { entry in
+                        RecentlyEatenItemView(entry: entry)
                     }
                 }
+                .padding()
             }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $capturedImage)
-            }
-            .navigationTitle("Scan Food")
+            .navigationTitle("FitLens")
         }
     }
+}
+
+struct NutrientRingView: View {
+    var value: Int
+    var total: Int
+    var title: String
+    var color: Color
     
-    func analyzeFood() {
-        isAnalyzing = true
-        guard let image = capturedImage else { return }
-        
-        OpenAIService.shared.analyzeImage(image) { result in
-            DispatchQueue.main.async {
-                isAnalyzing = false
-                switch result {
-                case .success(let analysis):
-                    foodAnalysis = analysis
-                case .failure(let error):
-                    print("Error analyzing food: \(error.localizedDescription)")
+    var body: some View {
+        VStack {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: CGFloat(value) / CGFloat(total))
+                    .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack {
+                    Text("\(total - value)")
+                        .font(.title)
+                        .fontWeight(.bold)
+                    Text(title)
+                        .font(.caption)
                 }
             }
         }
     }
+}
+
+struct NutrientInfoView: View {
+    var value: Int
+    var total: Int
+    var title: String
+    var color: Color
     
-    func logFood() {
-        guard let analysis = foodAnalysis else { return }
-        let newEntry = FoodEntry(foodName: analysis.foodName, calories: analysis.calories, image: capturedImage)
-        foodLog.addEntry(newEntry)
-        capturedImage = nil
-        foodAnalysis = nil
+    var body: some View {
+        HStack {
+            Text("\(value)g")
+                .font(.headline)
+            Text(title)
+                .font(.subheadline)
+            Spacer()
+            Circle()
+                .fill(color)
+                .frame(width: 30, height: 30)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct RecentlyEatenItemView: View {
+    var entry: FoodEntry
+    
+    var body: some View {
+        HStack {
+            if let image = entry.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(10)
+            }
+            
+            VStack(alignment: .leading) {
+                Text(entry.foodName)
+                    .font(.headline)
+                HStack {
+                    Image(systemName: "flame.fill")
+                    Text("\(entry.calories) calories")
+                    Text("• \(entry.protein)g")
+                        .foregroundColor(.red)
+                    Text("• \(entry.carbs)g")
+                        .foregroundColor(.yellow)
+                    Text("• \(entry.fat)g")
+                        .foregroundColor(.blue)
+                }
+                .font(.caption)
+            }
+            
+            Spacer()
+            
+            Text(entry.timestamp, style: .time)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct AnalyticsView: View {
+    var body: some View {
+        Text("Analytics View")
+    }
+}
+
+struct SettingsView: View {
+    var body: some View {
+        Text("Settings View")
     }
 }
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Environment(\.presentationMode) private var presentationMode
+    var foodLog: FoodLog
 
     func makeUIViewController(context: UIViewControllerRepresentableContext<ImagePicker>) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -138,6 +247,10 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.image = image
+                // Here you would typically call your AI service to analyze the image
+                // For now, we'll just add a dummy food entry
+                let dummyEntry = FoodEntry(foodName: "Scanned Food", calories: 300, protein: 20, carbs: 30, fat: 10, image: image, timestamp: Date())
+                parent.foodLog.addEntry(dummyEntry)
             }
             parent.presentationMode.wrappedValue.dismiss()
         }
@@ -146,6 +259,22 @@ struct ImagePicker: UIViewControllerRepresentable {
 
 class FoodLog: ObservableObject {
     @Published var entries: [FoodEntry] = []
+    
+    var caloriesConsumed: Int {
+        entries.reduce(0) { $0 + $1.calories }
+    }
+    
+    var proteinConsumed: Int {
+        entries.reduce(0) { $0 + $1.protein }
+    }
+    
+    var carbsConsumed: Int {
+        entries.reduce(0) { $0 + $1.carbs }
+    }
+    
+    var fatConsumed: Int {
+        entries.reduce(0) { $0 + $1.fat }
+    }
     
     func addEntry(_ entry: FoodEntry) {
         entries.append(entry)
@@ -156,7 +285,11 @@ struct FoodEntry: Identifiable {
     let id = UUID()
     let foodName: String
     let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
     let image: UIImage?
+    let timestamp: Date
 }
 
 struct DailyLogView: View {

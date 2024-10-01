@@ -37,7 +37,6 @@
 		FC996D5E2CA8186500BEF324 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		FC996D602CA8189E00BEF324 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FC996D622CA83CDF00BEF324 /* Config.plist.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.plist.template; sourceTree = "<group>"; };
-		FC996D642CA83CF200BEF324 /* Untitled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Untitled.swift; sourceTree = "<group>"; };
 		FCCB94F32CA5CBD1002A4A87 /* Radar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Radar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCCB95032CA5CBD4002A4A87 /* RadarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCCB950D2CA5CBD4002A4A87 /* RadarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -89,7 +88,6 @@
 		FCCB94EA2CA5CBD1002A4A87 = {
 			isa = PBXGroup;
 			children = (
-				FC996D642CA83CF200BEF324 /* Untitled.swift */,
 				FC996D622CA83CDF00BEF324 /* Config.plist.template */,
 				FC996D602CA8189E00BEF324 /* README.md */,
 				FC996D5E2CA8186500BEF324 /* .gitignore */,
