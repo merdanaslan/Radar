@@ -25,7 +25,7 @@ struct ContentView: View {
                 
                 Text("Battle")
                     .tabItem {
-                        Label("Battle", systemImage: "flag")
+                        Label("Battle", systemImage: "trophy.fill")
                     }
                     .tag(2)
                 
@@ -64,11 +64,7 @@ struct ContentView: View {
             }
             
             if isLoading {
-                Color.black.opacity(0.4)
-                    .edgesIgnoringSafeArea(.all)
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(2)
+                ModernLoadingView()
             }
         }
         .sheet(isPresented: $showImagePicker) {
@@ -81,10 +77,10 @@ struct ContentView: View {
 
 struct HomeView: View {
     @EnvironmentObject var foodLog: FoodLog
-    @AppStorage("dailyCalories") private var dailyCalories = 2000
-    @AppStorage("dailyProtein") private var dailyProtein = 150
-    @AppStorage("dailyCarbs") private var dailyCarbs = 250
-    @AppStorage("dailyFat") private var dailyFat = 65
+    @AppStorage("dailyCalories") private var dailyCalories = 2400
+    @AppStorage("dailyCarbs") private var dailyCarbs = 330
+    @AppStorage("dailyProtein") private var dailyProtein = 120
+    @AppStorage("dailyFat") private var dailyFat = 66
     
     var body: some View {
         NavigationView {
@@ -101,8 +97,8 @@ struct HomeView: View {
                     
                     HStack {
                         NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
-                        NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
                         NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
+                        NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
                         NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
                     }
                     .frame(height: 150)
@@ -221,27 +217,23 @@ struct AnalyticsView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(groupedEntries.keys.sorted().reversed(), id: \.self) { date in
-                    Section(header: Text(formatDate(date))) {
-                        ForEach(groupedEntries[date] ?? []) { entry in
-                            HStack {
-                                if let image = entry.image {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(entry.foodName)
-                                        .font(.headline)
-                                    Text("Calories: \(entry.calories), Protein: \(entry.protein)g, Carbs: \(entry.carbs)g, Fat: \(entry.fat)g")
-                                        .font(.subheadline)
-                                }
+            ScrollView {
+                VStack(spacing: 20) {
+                    SummaryCardView(foodLog: foodLog)
+                    
+                    ForEach(groupedEntries.keys.sorted().reversed(), id: \.self) { date in
+                        VStack(alignment: .leading) {
+                            Text(formatDate(date))
+                                .font(.headline)
+                                .padding(.leading)
+                            
+                            ForEach(groupedEntries[date] ?? []) { entry in
+                                FoodEntryCard(entry: entry)
                             }
                         }
                     }
                 }
+                .padding()
             }
             .navigationTitle("Nutrition Insights")
         }
@@ -257,6 +249,97 @@ struct AnalyticsView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM d, yyyy"
         return formatter.string(from: date)
+    }
+}
+
+struct SummaryCardView: View {
+    let foodLog: FoodLog
+    
+    var body: some View {
+        VStack {
+            Text("Today's Summary")
+                .font(.headline)
+            
+            HStack {
+                NutrientSummaryView(value: foodLog.caloriesConsumed, title: "Calories", color: .orange)
+                NutrientSummaryView(value: foodLog.carbsConsumed, title: "Carbs", color: .yellow)
+                NutrientSummaryView(value: foodLog.proteinConsumed, title: "Protein", color: .red)
+                NutrientSummaryView(value: foodLog.fatConsumed, title: "Fat", color: .blue)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 5)
+    }
+}
+
+struct NutrientSummaryView: View {
+    let value: Int
+    let title: String
+    let color: Color
+    
+    var body: some View {
+        VStack {
+            Text("\(value)")
+                .font(.title2)
+                .foregroundColor(color)
+            Text(title)
+                .font(.caption)
+        }
+    }
+}
+
+struct FoodEntryCard: View {
+    let entry: FoodEntry
+    
+    var body: some View {
+        HStack {
+            if let image = entry.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(10)
+            }
+            
+            VStack(alignment: .leading) {
+                Text(entry.foodName)
+                    .font(.headline)
+                HStack {
+                    NutrientBadge(value: entry.calories, unit: "cal", color: .orange)
+                    NutrientBadge(value: entry.carbs, unit: "g", color: .yellow)
+                    NutrientBadge(value: entry.protein, unit: "g", color: .red)
+                    NutrientBadge(value: entry.fat, unit: "g", color: .blue)
+                }
+            }
+            
+            Spacer()
+            
+            Text(entry.timestamp, style: .time)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct NutrientBadge: View {
+    let value: Int
+    let unit: String
+    let color: Color
+    
+    var body: some View {
+        Text("\(value)\(unit)")
+            .font(.caption)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(5)
     }
 }
 
@@ -611,4 +694,31 @@ struct FoodAnalysis: Codable {
     let protein: Int
     let carbs: Int
     let fat: Int
+}
+
+struct ModernLoadingView: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack {
+                Circle()
+                    .trim(from: 0, to: 0.7)
+                    .stroke(Color.white, lineWidth: 5)
+                    .frame(width: 50, height: 50)
+                    .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
+                    .animation(Animation.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
+                
+                Text("Analyzing...")
+                    .foregroundColor(.white)
+                    .padding(.top, 10)
+            }
+        }
+        .onAppear {
+            isAnimating = true
+        }
+    }
 }
