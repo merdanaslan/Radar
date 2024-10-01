@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showImagePicker = false
     @State private var capturedImage: UIImage?
+    @State private var isLoading = false
     
     var body: some View {
         ZStack {
@@ -61,11 +62,20 @@ struct ContentView: View {
                     .padding(.bottom, 80)
                 }
             }
+            
+            if isLoading {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(2)
+            }
         }
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $capturedImage, foodLog: foodLog)
+            ImagePicker(image: $capturedImage, isLoading: $isLoading, foodLog: foodLog)
         }
         .environmentObject(foodLog)
+        .preferredColorScheme(.light) // Force light mode
     }
 }
 
@@ -131,6 +141,9 @@ struct NutrientRingView: View {
                         .font(.system(size: 14, weight: .bold))
                     Text(title)
                         .font(.system(size: 10))
+                    Text("left")
+                        .font(.system(size: 8))
+                        .foregroundColor(.gray)
                 }
             }
         }
@@ -209,25 +222,41 @@ struct AnalyticsView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(foodLog.entries) { entry in
-                    HStack {
-                        if let image = entry.image {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 50, height: 50)
-                        }
-                        VStack(alignment: .leading) {
-                            Text(entry.foodName)
-                                .font(.headline)
-                            Text("Calories: \(entry.calories), Protein: \(entry.protein)g, Carbs: \(entry.carbs)g, Fat: \(entry.fat)g")
-                                .font(.subheadline)
+                ForEach(groupedEntries.keys.sorted().reversed(), id: \.self) { date in
+                    Section(header: Text(formatDate(date))) {
+                        ForEach(groupedEntries[date] ?? []) { entry in
+                            HStack {
+                                if let image = entry.image {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 50, height: 50)
+                                }
+                                VStack(alignment: .leading) {
+                                    Text(entry.foodName)
+                                        .font(.headline)
+                                    Text("Calories: \(entry.calories), Protein: \(entry.protein)g, Carbs: \(entry.carbs)g, Fat: \(entry.fat)g")
+                                        .font(.subheadline)
+                                }
+                            }
                         }
                     }
                 }
             }
-            .navigationTitle("Food Log")
+            .navigationTitle("Nutrition Insights")
         }
+    }
+    
+    var groupedEntries: [Date: [FoodEntry]] {
+        Dictionary(grouping: foodLog.entries) { entry in
+            Calendar.current.startOfDay(for: entry.timestamp)
+        }
+    }
+    
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter.string(from: date)
     }
 }
 
@@ -278,6 +307,7 @@ struct SettingsView: View {
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    @Binding var isLoading: Bool // Add this line
     @Environment(\.presentationMode) private var presentationMode
     var foodLog: FoodLog
 
@@ -303,9 +333,11 @@ struct ImagePicker: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
-                parent.image = image
+                self.parent.image = image
+                self.parent.isLoading = true // Start loading
                 OpenAIService.shared.analyzeImage(image) { result in
                     DispatchQueue.main.async {
+                        self.parent.isLoading = false // Stop loading
                         switch result {
                         case .success(let foodAnalysis):
                             let entry = FoodEntry(foodName: foodAnalysis.foodName,
