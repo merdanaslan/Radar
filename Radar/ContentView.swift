@@ -10,6 +10,8 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            Color.white.edgesIgnoringSafeArea(.all) // Changed to white
+            
             TabView(selection: $selectedTab) {
                 HomeView()
                     .tabItem {
@@ -95,13 +97,17 @@ struct HomeView: View {
                     }
                     .padding(.top)
                     
-                    HStack {
+                    HStack(spacing: 5) {
                         NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
                         NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
                         NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
                         NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
                     }
-                    .frame(height: 150)
+                    .frame(height: 180) // Reduced height
+                    .padding(.horizontal, 5) // Reduced horizontal padding
+                    .padding(.vertical, 10) // Reduced vertical padding
+                    .background(Color(UIColor.systemGray6))
+                    .cornerRadius(15)
                     
                     Text("Recently eaten")
                         .font(.headline)
@@ -113,6 +119,7 @@ struct HomeView: View {
                 .padding()
             }
             .navigationTitle("FitLens")
+            .background(Color.white)
         }
     }
 }
@@ -127,18 +134,18 @@ struct NutrientRingView: View {
         VStack {
             ZStack {
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 10)
+                    .stroke(color.opacity(0.2), lineWidth: 6) // Reduced thickness
                 Circle()
                     .trim(from: 0, to: min(CGFloat(value) / CGFloat(total), 1.0))
-                    .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round)) // Reduced thickness
                     .rotationEffect(.degrees(-90))
-                VStack {
+                VStack(spacing: 2) {
                     Text("\(max(total - value, 0))")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 22, weight: .bold)) // Increased font size
                     Text(title)
-                        .font(.system(size: 10))
+                        .font(.system(size: 14)) // Increased font size
                     Text("left")
-                        .font(.system(size: 8))
+                        .font(.system(size: 12)) // Increased font size
                         .foregroundColor(.gray)
                 }
             }
@@ -214,35 +221,35 @@ struct RecentlyEatenItemView: View {
 
 struct AnalyticsView: View {
     @EnvironmentObject var foodLog: FoodLog
+    @State private var selectedDate: Date? = Date() // Change to optional Date
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    SummaryCardView(foodLog: foodLog)
+                    CalendarView(selectedDate: $selectedDate)
                     
-                    ForEach(groupedEntries.keys.sorted().reversed(), id: \.self) { date in
-                        VStack(alignment: .leading) {
-                            Text(formatDate(date))
-                                .font(.headline)
-                                .padding(.leading)
-                            
-                            ForEach(groupedEntries[date] ?? []) { entry in
-                                FoodEntryCard(entry: entry)
-                            }
+                    if let date = selectedDate {
+                        SummaryCardView(foodLog: foodLog, date: date)
+                        
+                        Text(formatDate(date))
+                            .font(.headline)
+                        
+                        ForEach(entriesForSelectedDate, id: \.id) { entry in
+                            FoodEntryCard(entry: entry)
                         }
                     }
                 }
                 .padding()
             }
             .navigationTitle("Nutrition Insights")
+            .background(Color.white)
         }
     }
     
-    var groupedEntries: [Date: [FoodEntry]] {
-        Dictionary(grouping: foodLog.entries) { entry in
-            Calendar.current.startOfDay(for: entry.timestamp)
-        }
+    var entriesForSelectedDate: [FoodEntry] {
+        guard let date = selectedDate else { return [] }
+        return foodLog.entries.filter { Calendar.current.isDate($0.timestamp, inSameDayAs: date) }
     }
     
     func formatDate(_ date: Date) -> String {
@@ -252,25 +259,157 @@ struct AnalyticsView: View {
     }
 }
 
-struct SummaryCardView: View {
-    let foodLog: FoodLog
+struct CalendarView: View {
+    @EnvironmentObject var foodLog: FoodLog
+    @Binding var selectedDate: Date?
+    @State private var currentMonth: Date = Date()
     
     var body: some View {
         VStack {
-            Text("Today's Summary")
+            monthHeader
+            dayOfWeekHeader
+            calendarGrid
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+    
+    private var monthHeader: some View {
+        HStack {
+            Button(action: previousMonth) {
+                Image(systemName: "chevron.left")
+            }
+            Spacer()
+            Text(monthYearString(from: currentMonth))
+                .font(.headline)
+            Spacer()
+            Button(action: nextMonth) {
+                Image(systemName: "chevron.right")
+            }
+        }
+    }
+    
+    private var dayOfWeekHeader: some View {
+        HStack {
+            ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
+                Text(day)
+                    .frame(maxWidth: .infinity)
+                    .font(.caption)
+            }
+        }
+    }
+    
+    private var calendarGrid: some View {
+        let days = daysInMonth(for: currentMonth)
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+            ForEach(days, id: \.self) { date in
+                if let date = date {
+                    DayCell(date: date, isSelected: Binding(
+                        get: { self.selectedDate == date },
+                        set: { _ in self.selectedDate = date }
+                    ), isTracked: foodLog.hasEntry(on: date))
+                } else {
+                    Color.clear
+                }
+            }
+        }
+    }
+    
+    private func previousMonth() {
+        currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth)!
+    }
+    
+    private func nextMonth() {
+        currentMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth)!
+    }
+    
+    private func monthYearString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func daysInMonth(for date: Date) -> [Date?] {
+        let calendar = Calendar.current
+        let range = calendar.range(of: .day, in: .month, for: date)!
+        let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
+        
+        var days: [Date?] = []
+        let weekday = calendar.component(.weekday, from: firstDayOfMonth)
+        for _ in 1..<weekday {
+            days.append(nil)
+        }
+        
+        for day in 1...range.count {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstDayOfMonth) {
+                days.append(date)
+            }
+        }
+        
+        return days
+    }
+}
+
+struct DayCell: View {
+    let date: Date
+    @Binding var isSelected: Bool
+    let isTracked: Bool
+    
+    var body: some View {
+        Text("\(Calendar.current.component(.day, from: date))")
+            .frame(width: 32, height: 32)
+            .font(.system(size: 16))
+            .foregroundColor(isTracked ? .white : .primary)
+            .background(
+                Group {
+                    if isTracked {
+                        Color.green
+                    } else if isSelected {
+                        Color.blue.opacity(0.2)
+                    } else {
+                        Color.clear
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+            )
+            .onTapGesture {
+                isSelected.toggle()
+            }
+    }
+}
+
+struct SummaryCardView: View {
+    let foodLog: FoodLog
+    let date: Date
+    
+    var body: some View {
+        VStack {
+            Text("Summary for \(formatDate(date))")
                 .font(.headline)
             
             HStack {
-                NutrientSummaryView(value: foodLog.caloriesConsumed, title: "Calories", color: .orange)
-                NutrientSummaryView(value: foodLog.carbsConsumed, title: "Carbs", color: .yellow)
-                NutrientSummaryView(value: foodLog.proteinConsumed, title: "Protein", color: .red)
-                NutrientSummaryView(value: foodLog.fatConsumed, title: "Fat", color: .blue)
+                NutrientSummaryView(value: foodLog.caloriesConsumed(on: date), title: "Calories", color: .orange)
+                NutrientSummaryView(value: foodLog.carbsConsumed(on: date), title: "Carbs", color: .yellow)
+                NutrientSummaryView(value: foodLog.proteinConsumed(on: date), title: "Protein", color: .red)
+                NutrientSummaryView(value: foodLog.fatConsumed(on: date), title: "Fat", color: .blue)
             }
         }
         .padding()
         .background(Color.white)
         .cornerRadius(10)
         .shadow(radius: 5)
+    }
+    
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter.string(from: date)
     }
 }
 
@@ -344,45 +483,61 @@ struct NutrientBadge: View {
 }
 
 struct SettingsView: View {
-    @AppStorage("dailyCalories") private var dailyCalories = 2000
-    @AppStorage("dailyProtein") private var dailyProtein = 150
-    @AppStorage("dailyCarbs") private var dailyCarbs = 250
-    @AppStorage("dailyFat") private var dailyFat = 65
+    @AppStorage("dailyCalories") private var dailyCalories = 2400
+    @AppStorage("dailyProtein") private var dailyProtein = 120
+    @AppStorage("dailyCarbs") private var dailyCarbs = 330
+    @AppStorage("dailyFat") private var dailyFat = 66
+    @AppStorage("userName") private var userName = ""
+    @AppStorage("userHeight") private var userHeight = ""
+    @AppStorage("userWeight") private var userWeight = ""
     
     var body: some View {
         NavigationView {
-            Form {
+            List {
+                Section(header: Text("Personal Information")) {
+                    TextField("Name", text: $userName)
+                    TextField("Height (cm)", text: $userHeight)
+                        .keyboardType(.numberPad)
+                    TextField("Weight (kg)", text: $userWeight)
+                        .keyboardType(.numberPad)
+                }
+                
                 Section(header: Text("Daily Goals")) {
                     HStack {
                         Text("Calories")
                         Spacer()
-                        TextField("Calories", value: $dailyCalories, formatter: NumberFormatter())
+                        TextField("", value: $dailyCalories, formatter: NumberFormatter())
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
                     }
                     HStack {
                         Text("Protein (g)")
                         Spacer()
-                        TextField("Protein", value: $dailyProtein, formatter: NumberFormatter())
+                        TextField("", value: $dailyProtein, formatter: NumberFormatter())
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
                     }
                     HStack {
                         Text("Carbs (g)")
                         Spacer()
-                        TextField("Carbs", value: $dailyCarbs, formatter: NumberFormatter())
+                        TextField("", value: $dailyCarbs, formatter: NumberFormatter())
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
                     }
                     HStack {
                         Text("Fat (g)")
                         Spacer()
-                        TextField("Fat", value: $dailyFat, formatter: NumberFormatter())
+                        TextField("", value: $dailyFat, formatter: NumberFormatter())
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
                     }
                 }
             }
+            .listStyle(InsetGroupedListStyle())
             .navigationTitle("Settings")
         }
     }
@@ -464,6 +619,33 @@ class FoodLog: ObservableObject {
     
     func addEntry(_ entry: FoodEntry) {
         entries.append(entry)
+    }
+    
+    func hasEntry(on date: Date) -> Bool {
+        let calendar = Calendar.current
+        return entries.contains { entry in
+            calendar.isDate(entry.timestamp, inSameDayAs: date)
+        }
+    }
+    
+    func caloriesConsumed(on date: Date) -> Int {
+        entriesForDate(date).reduce(0) { $0 + $1.calories }
+    }
+    
+    func carbsConsumed(on date: Date) -> Int {
+        entriesForDate(date).reduce(0) { $0 + $1.carbs }
+    }
+    
+    func proteinConsumed(on date: Date) -> Int {
+        entriesForDate(date).reduce(0) { $0 + $1.protein }
+    }
+    
+    func fatConsumed(on date: Date) -> Int {
+        entriesForDate(date).reduce(0) { $0 + $1.fat }
+    }
+    
+    private func entriesForDate(_ date: Date) -> [FoodEntry] {
+        entries.filter { Calendar.current.isDate($0.timestamp, inSameDayAs: date) }
     }
 }
 
