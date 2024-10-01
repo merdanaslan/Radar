@@ -90,15 +90,12 @@ struct HomeView: View {
                     .padding(.top)
                     
                     HStack {
-                        NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories left", color: .orange)
-                            .frame(height: 150)
-                        
-                        VStack(spacing: 10) {
-                            NutrientInfoView(value: dailyProtein - foodLog.proteinConsumed, total: dailyProtein, title: "Protein left", color: .red)
-                            NutrientInfoView(value: dailyCarbs - foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs left", color: .yellow)
-                            NutrientInfoView(value: dailyFat - foodLog.fatConsumed, total: dailyFat, title: "Fat left", color: .blue)
-                        }
+                        NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
+                        NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
+                        NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
+                        NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
                     }
+                    .frame(height: 150)
                     
                     Text("Recently eaten")
                         .font(.headline)
@@ -126,15 +123,14 @@ struct NutrientRingView: View {
                 Circle()
                     .stroke(color.opacity(0.2), lineWidth: 10)
                 Circle()
-                    .trim(from: 0, to: CGFloat(value) / CGFloat(total))
+                    .trim(from: 0, to: min(CGFloat(value) / CGFloat(total), 1.0))
                     .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 VStack {
-                    Text("\(total - value)")
-                        .font(.title)
-                        .fontWeight(.bold)
+                    Text("\(max(total - value, 0))")
+                        .font(.system(size: 14, weight: .bold))
                     Text(title)
-                        .font(.caption)
+                        .font(.system(size: 10))
                 }
             }
         }
@@ -208,14 +204,75 @@ struct RecentlyEatenItemView: View {
 }
 
 struct AnalyticsView: View {
+    @EnvironmentObject var foodLog: FoodLog
+    
     var body: some View {
-        Text("Analytics View")
+        NavigationView {
+            List {
+                ForEach(foodLog.entries) { entry in
+                    HStack {
+                        if let image = entry.image {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50, height: 50)
+                        }
+                        VStack(alignment: .leading) {
+                            Text(entry.foodName)
+                                .font(.headline)
+                            Text("Calories: \(entry.calories), Protein: \(entry.protein)g, Carbs: \(entry.carbs)g, Fat: \(entry.fat)g")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Food Log")
+        }
     }
 }
 
 struct SettingsView: View {
+    @AppStorage("dailyCalories") private var dailyCalories = 2000
+    @AppStorage("dailyProtein") private var dailyProtein = 150
+    @AppStorage("dailyCarbs") private var dailyCarbs = 250
+    @AppStorage("dailyFat") private var dailyFat = 65
+    
     var body: some View {
-        Text("Settings View")
+        NavigationView {
+            Form {
+                Section(header: Text("Daily Goals")) {
+                    HStack {
+                        Text("Calories")
+                        Spacer()
+                        TextField("Calories", value: $dailyCalories, formatter: NumberFormatter())
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Protein (g)")
+                        Spacer()
+                        TextField("Protein", value: $dailyProtein, formatter: NumberFormatter())
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Carbs (g)")
+                        Spacer()
+                        TextField("Carbs", value: $dailyCarbs, formatter: NumberFormatter())
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Fat (g)")
+                        Spacer()
+                        TextField("Fat", value: $dailyFat, formatter: NumberFormatter())
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+        }
     }
 }
 
@@ -247,12 +304,25 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.image = image
-                // Here you would typically call your AI service to analyze the image
-                // For now, we'll just add a dummy food entry
-                let dummyEntry = FoodEntry(foodName: "Scanned Food", calories: 300, protein: 20, carbs: 30, fat: 10, image: image, timestamp: Date())
-                parent.foodLog.addEntry(dummyEntry)
+                OpenAIService.shared.analyzeImage(image) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let foodAnalysis):
+                            let entry = FoodEntry(foodName: foodAnalysis.foodName,
+                                                  calories: foodAnalysis.calories,
+                                                  protein: foodAnalysis.protein,
+                                                  carbs: foodAnalysis.carbs,
+                                                  fat: foodAnalysis.fat,
+                                                  image: image,
+                                                  timestamp: Date())
+                            self.parent.foodLog.addEntry(entry)
+                        case .failure(let error):
+                            print("Failed to analyze image: \(error.localizedDescription)")
+                        }
+                        self.parent.presentationMode.wrappedValue.dismiss()
+                    }
+                }
             }
-            parent.presentationMode.wrappedValue.dismiss()
         }
     }
 }
