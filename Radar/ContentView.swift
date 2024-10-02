@@ -10,7 +10,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all) // Use system background color
+            Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all)
             
             TabView(selection: $selectedTab) {
                 HomeView()
@@ -31,7 +31,7 @@ struct ContentView: View {
                     }
                     .tag(2)
                 
-                Text("Wallet")
+                WalletView() // New WalletView
                     .tabItem {
                         Label("Wallet", systemImage: "wallet.pass")
                     }
@@ -121,7 +121,6 @@ struct HomeView: View {
                 .padding()
             }
             .navigationTitle("FitLens")
-            .navigationBarTitleDisplayMode(.inline) // Add this line
             .background(Color(UIColor.systemGroupedBackground))
         }
     }
@@ -247,7 +246,6 @@ struct AnalyticsView: View {
                 .padding()
             }
             .navigationTitle("Nutrition Insights")
-            .navigationBarTitleDisplayMode(.inline) // Add this line
             .background(Color(UIColor.systemGroupedBackground))
         }
     }
@@ -523,7 +521,6 @@ struct SettingsView: View {
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("More")
-            .navigationBarTitleDisplayMode(.inline) // Add this line
         }
     }
     
@@ -926,5 +923,96 @@ struct ConsistentShadowStyle: ViewModifier {
 extension View {
     func consistentShadow() -> some View {
         self.modifier(ConsistentShadowStyle())
+    }
+}
+
+// New WalletView
+struct WalletView: View {
+    @State private var points = 1000 // Example value
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Text("Points:")
+                            .font(.headline)
+                        Text("\(points)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
+                    .padding(.top)
+                    
+                    HStack(spacing: 10) {
+                        ActionButton(title: "Transfer", icon: "arrow.left.arrow.right")
+                        ActionButton(title: "Buy", icon: "plus")
+                        ActionButton(title: "Trade", icon: "arrow.2.squarepath")
+                    }
+                    
+                    Text("Your Coins")
+                        .font(.headline)
+                        .padding(.top)
+                    
+                    CoinRow(name: "SOL", fullName: "Solana", amount: "10.5", value: "$210.00")
+                    CoinRow(name: "USDC", fullName: "USD Coin", amount: "100.0", value: "$100.00")
+                    // Add more coin rows as needed
+                }
+                .padding()
+            }
+            .navigationTitle("Portfolio")
+            .background(Color(UIColor.systemGroupedBackground))
+        }
+    }
+}
+
+struct ActionButton: View {
+    let title: String
+    let icon: String
+    
+    var body: some View {
+        VStack {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(.white)
+                .frame(width: 50, height: 50)
+                .background(Color.black)
+                .clipShape(Circle())
+            
+            Text(title)
+                .font(.caption)
+        }
+    }
+}
+
+struct CoinRow: View {
+    let name: String
+    let fullName: String
+    let amount: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(name)
+                    .font(.headline)
+                Text(fullName)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing) {
+                Text(amount)
+                    .font(.headline)
+                Text(value)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .consistentShadow()
     }
 }
