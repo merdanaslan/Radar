@@ -98,18 +98,18 @@ struct HomeView: View {
                     .padding(.top)
                     
                     VStack {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 10) {
                             NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
                             NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
                             NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
                             NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
                         }
                     }
-                    .frame(height: 180)
+                    .frame(height: 150) // Increased height
                     .padding()
                     .background(Color.white)
                     .cornerRadius(15)
-                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    .shadow(radius: 10, x: 0, y: 5)
                     
                     Text("Recently eaten")
                         .font(.headline)
@@ -136,21 +136,22 @@ struct NutrientRingView: View {
         VStack {
             ZStack {
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 6)
+                    .stroke(color.opacity(0.2), lineWidth: 8) // Increased thickness
                 Circle()
                     .trim(from: 0, to: min(CGFloat(value) / CGFloat(total), 1.0))
-                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round)) // Increased thickness
                     .rotationEffect(.degrees(-90))
-                VStack(spacing: 2) {
+                VStack(spacing: 0) {
                     Text("\(max(total - value, 0))\(title == "Calories" ? "" : "g")")
-                        .font(.system(size: 18, weight: .bold)) // Reduced font size
+                        .font(.system(size: 16, weight: .bold)) // Reduced font size
                     Text(title)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12)) // Reduced font size
                     Text("left")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
                 }
             }
+            .frame(width: 80, height: 80) // Keep the same size
         }
     }
 }
@@ -217,7 +218,7 @@ struct RecentlyEatenItemView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(10)
-        .shadow(radius: 2)
+        .consistentShadow()
     }
 }
 
@@ -275,7 +276,12 @@ struct CalendarView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(10)
-        .shadow(radius: 2)
+        .consistentShadow()
+        .onAppear {
+            if selectedDate == nil {
+                selectedDate = Date() // Set to current date if not already set
+            }
+        }
     }
     
     private var monthHeader: some View {
@@ -305,13 +311,14 @@ struct CalendarView: View {
     
     private var calendarGrid: some View {
         let days = daysInMonth(for: currentMonth)
+        let today = Calendar.current.startOfDay(for: Date())
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
             ForEach(days, id: \.self) { date in
                 if let date = date {
                     DayCell(date: date, isSelected: Binding(
                         get: { self.selectedDate == date },
                         set: { _ in self.selectedDate = date }
-                    ), isTracked: foodLog.hasEntry(on: date))
+                    ), isTracked: foodLog.hasEntry(on: date), isToday: Calendar.current.isDate(date, inSameDayAs: today))
                 } else {
                     Color.clear
                 }
@@ -358,18 +365,21 @@ struct DayCell: View {
     let date: Date
     @Binding var isSelected: Bool
     let isTracked: Bool
+    let isToday: Bool
     
     var body: some View {
         Text("\(Calendar.current.component(.day, from: date))")
             .frame(width: 32, height: 32)
             .font(.system(size: 16))
-            .foregroundColor(isTracked ? .white : .primary)
+            .foregroundColor(isTracked ? .white : (isToday ? .blue : .primary))
             .background(
                 Group {
                     if isTracked {
                         Color.green
                     } else if isSelected {
                         Color.blue.opacity(0.2)
+                    } else if isToday {
+                        Color.blue.opacity(0.1)
                     } else {
                         Color.clear
                     }
@@ -378,7 +388,7 @@ struct DayCell: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? Color.blue : (isToday ? Color.blue : Color.clear), lineWidth: 2)
             )
             .onTapGesture {
                 isSelected.toggle()
@@ -405,7 +415,7 @@ struct SummaryCardView: View {
         .padding()
         .background(Color.white)
         .cornerRadius(10)
-        .shadow(radius: 5)
+        .consistentShadow()
     }
     
     func formatDate(_ date: Date) -> String {
@@ -464,7 +474,7 @@ struct FoodEntryCard: View {
         .padding()
         .background(Color.white)
         .cornerRadius(10)
-        .shadow(radius: 2)
+        .consistentShadow()
     }
 }
 
@@ -495,15 +505,23 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    personalInfoSection
-                    dailyGoalsSection
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(spacing: 20) {
+                        personalInfoSection
+                        dailyGoalsSection
+                    }
+                    .padding()
                 }
-                .padding()
+                .background(Color.white)
+                .navigationTitle("Settings")
+                .gesture(
+                    TapGesture()
+                        .onEnded { _ in
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        }
+                )
             }
-            .background(Color.white)
-            .navigationTitle("Settings")
         }
     }
     
@@ -928,5 +946,19 @@ struct ModernLoadingView: View {
         .onAppear {
             isAnimating = true
         }
+    }
+}
+
+// Create a consistent shadow style
+struct ConsistentShadowStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+    }
+}
+
+extension View {
+    func consistentShadow() -> some View {
+        self.modifier(ConsistentShadowStyle())
     }
 }
