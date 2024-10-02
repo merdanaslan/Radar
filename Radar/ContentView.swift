@@ -504,19 +504,27 @@ struct SettingsView: View {
                     NavigationLink(destination: UserProfileView()) {
                         SettingsRow(title: "Profile", iconName: "person.circle")
                     }
-                    SettingsRow(title: "Data & Privacy", iconName: "lock.shield")
-                    SettingsRow(title: "Subscription", iconName: "creditcard")
-                    SettingsRow(title: "Password", iconName: "key")
-                    Button(action: {
-                        // Implement sign out functionality
-                    }) {
+                    NavigationLink(destination: Text("Data & Privacy Settings")) {
+                        SettingsRow(title: "Data & Privacy", iconName: "lock.shield")
+                    }
+                    NavigationLink(destination: Text("Subscription Settings")) {
+                        SettingsRow(title: "Subscription", iconName: "creditcard")
+                    }
+                    NavigationLink(destination: Text("Password Settings")) {
+                        SettingsRow(title: "Password", iconName: "key")
+                    }
+                    NavigationLink(destination: Text("Sign Out Confirmation")) {
                         SettingsRow(title: "Sign Out", iconName: "arrow.right.square")
                     }
                 }
                 
                 Section(header: Text("Feature Settings")) {
-                    SettingsRow(title: "Shortcuts", iconName: "command")
-                    SettingsRow(title: "Integrations", iconName: "link")
+                    NavigationLink(destination: Text("Shortcuts Settings")) {
+                        SettingsRow(title: "Shortcuts", iconName: "command")
+                    }
+                    NavigationLink(destination: Text("Integrations Settings")) {
+                        SettingsRow(title: "Integrations", iconName: "link")
+                    }
                 }
             }
             .listStyle(InsetGroupedListStyle())
@@ -631,12 +639,12 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 self.parent.image = image
-                self.parent.isLoading = true // Start loading
-                self.parent.presentationMode.wrappedValue.dismiss() // Dismiss the image picker immediately
+                self.parent.isLoading = true
+                self.parent.presentationMode.wrappedValue.dismiss()
                 
                 OpenAIService.shared.analyzeImage(image) { result in
                     DispatchQueue.main.async {
-                        self.parent.isLoading = false // Stop loading
+                        self.parent.isLoading = false
                         switch result {
                         case .success(let foodAnalysis):
                             let entry = FoodEntry(foodName: foodAnalysis.foodName,
@@ -649,6 +657,14 @@ struct ImagePicker: UIViewControllerRepresentable {
                             self.parent.foodLog.addEntry(entry)
                         case .failure(let error):
                             print("Failed to analyze image: \(error.localizedDescription)")
+                            // Show a simplified alert to the user
+                            if let window = UIApplication.shared.windows.first,
+                               let rootViewController = window.rootViewController {
+                                let alertMessage = "We couldn't identify the food in this image. Please try again with a clearer photo or manually enter the food details."
+                                let alert = UIAlertController(title: "Oops!", message: alertMessage, preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+                                rootViewController.present(alert, animated: true, completion: nil)
+                            }
                         }
                     }
                 }
@@ -796,7 +812,7 @@ class OpenAIService {
                     "content": [
                         [
                             "type": "text",
-                            "text": "Analyze this image and provide the name of the food and its nutritional information in the following JSON format: {\"foodName\": \"Name of the food\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}. If the image doesn't contain food or nutritional information, return {\"foodName\": \"No food detected\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}."
+                            "text": "Analyze this image and provide the name of the food and its nutritional information. If there are multiple food items, sum up their nutritional values. Respond in the following JSON format: {\"foodName\": \"Name of the food(s)\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}. If the image doesn't contain food or nutritional information, return {\"foodName\": \"No food detected\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}."
                         ],
                         [
                             "type": "image_url",
@@ -853,7 +869,13 @@ class OpenAIService {
                         if let data = jsonString.data(using: .utf8),
                            let foodAnalysis = try? JSONDecoder().decode(FoodAnalysis.self, from: data) {
                             print("Successfully parsed response. Food name: \(foodAnalysis.foodName)")
-                            completion(.success(foodAnalysis))
+                            
+                            // Handle "No food detected" case
+                            if foodAnalysis.foodName == "No food detected" || foodAnalysis.foodName == "Multiple food items" {
+                                completion(.failure(NSError(domain: "Food Detection", code: 0, userInfo: [NSLocalizedDescriptionKey: foodAnalysis.foodName])))
+                            } else {
+                                completion(.success(foodAnalysis))
+                            }
                         } else {
                             print("Failed to parse the expected structure from the JSON")
                             completion(.failure(NSError(domain: "Parsing Error", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse the response"])))
