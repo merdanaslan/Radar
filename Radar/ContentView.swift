@@ -10,7 +10,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            Color.white.edgesIgnoringSafeArea(.all) // Changed to white
+            Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all) // Use system background color
             
             TabView(selection: $selectedTab) {
                 HomeView()
@@ -39,7 +39,7 @@ struct ContentView: View {
                 
                 SettingsView()
                     .tabItem {
-                        Label("Settings", systemImage: "gear")
+                        Label("More", systemImage: "ellipsis")
                     }
                     .tag(4)
             }
@@ -121,7 +121,8 @@ struct HomeView: View {
                 .padding()
             }
             .navigationTitle("FitLens")
-            .background(Color.white)
+            .navigationBarTitleDisplayMode(.inline) // Add this line
+            .background(Color(UIColor.systemGroupedBackground))
         }
     }
 }
@@ -246,7 +247,8 @@ struct AnalyticsView: View {
                 .padding()
             }
             .navigationTitle("Nutrition Insights")
-            .background(Color.white)
+            .navigationBarTitleDisplayMode(.inline) // Add this line
+            .background(Color(UIColor.systemGroupedBackground))
         }
     }
     
@@ -495,6 +497,74 @@ struct NutrientBadge: View {
 }
 
 struct SettingsView: View {
+    var body: some View {
+        NavigationView {
+            List {
+                userInfoSection
+                
+                Section(header: Text("General")) {
+                    NavigationLink(destination: UserProfileView()) {
+                        SettingsRow(title: "Profile", iconName: "person.circle")
+                    }
+                    SettingsRow(title: "Data & Privacy", iconName: "lock.shield")
+                    SettingsRow(title: "Subscription", iconName: "creditcard")
+                    SettingsRow(title: "Password", iconName: "key")
+                    Button(action: {
+                        // Implement sign out functionality
+                    }) {
+                        SettingsRow(title: "Sign Out", iconName: "arrow.right.square")
+                    }
+                }
+                
+                Section(header: Text("Feature Settings")) {
+                    SettingsRow(title: "Shortcuts", iconName: "command")
+                    SettingsRow(title: "Integrations", iconName: "link")
+                }
+            }
+            .listStyle(InsetGroupedListStyle())
+            .navigationTitle("More")
+            .navigationBarTitleDisplayMode(.inline) // Add this line
+        }
+    }
+    
+    private var userInfoSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("ME")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.black)
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading) {
+                    Text("Merdan")
+                        .font(.headline)
+                    Text("Member Since 1. Oktober 2024")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(.vertical)
+    }
+}
+
+struct SettingsRow: View {
+    let title: String
+    let iconName: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: iconName)
+                .frame(width: 30)
+            Text(title)
+            Spacer()
+        }
+    }
+}
+
+struct UserProfileView: View {
     @AppStorage("dailyCalories") private var dailyCalories = 2400
     @AppStorage("dailyProtein") private var dailyProtein = 120
     @AppStorage("dailyCarbs") private var dailyCarbs = 330
@@ -504,72 +574,23 @@ struct SettingsView: View {
     @AppStorage("userWeight") private var userWeight = ""
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 20) {
-                        personalInfoSection
-                        dailyGoalsSection
-                    }
-                    .padding()
-                }
-                .background(Color.white)
-                .navigationTitle("Settings")
-                .gesture(
-                    TapGesture()
-                        .onEnded { _ in
-                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        }
-                )
+        Form {
+            Section(header: Text("Personal Information")) {
+                TextField("Name", text: $userName)
+                TextField("Height (cm)", text: $userHeight)
+                    .keyboardType(.numberPad)
+                TextField("Weight (kg)", text: $userWeight)
+                    .keyboardType(.numberPad)
+            }
+            
+            Section(header: Text("Daily Goals")) {
+                goalRow(title: "Calories", value: $dailyCalories)
+                goalRow(title: "Protein (g)", value: $dailyProtein)
+                goalRow(title: "Carbs (g)", value: $dailyCarbs)
+                goalRow(title: "Fat (g)", value: $dailyFat)
             }
         }
-    }
-    
-    private var personalInfoSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Personal Information")
-                .font(.headline)
-            
-            TextField("Name", text: $userName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(10)
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(8)
-            
-            TextField("Height (cm)", text: $userHeight)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.numberPad)
-                .padding(10)
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(8)
-            
-            TextField("Weight (kg)", text: $userWeight)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.numberPad)
-                .padding(10)
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(8)
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-    }
-    
-    private var dailyGoalsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Daily Goals")
-                .font(.headline)
-            
-            goalRow(title: "Calories", value: $dailyCalories)
-            goalRow(title: "Protein (g)", value: $dailyProtein)
-            goalRow(title: "Carbs (g)", value: $dailyCarbs)
-            goalRow(title: "Fat (g)", value: $dailyFat)
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .navigationTitle("Profile")
     }
     
     private func goalRow(title: String, value: Binding<Int>) -> some View {
@@ -580,9 +601,6 @@ struct SettingsView: View {
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 100)
-                .padding(10)
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(8)
         }
     }
 }
@@ -737,58 +755,6 @@ struct DailyLogView: View {
     
     func deleteEntry(at offsets: IndexSet) {
         foodLog.entries.remove(atOffsets: offsets)
-    }
-}
-
-struct ProfileView: View {
-    @State private var name = ""
-    @State private var age = ""
-    @State private var height = ""
-    @State private var weight = ""
-    @State private var goal = "Maintain Weight"
-    
-    let goals = ["Lose Weight", "Maintain Weight", "Gain Weight"]
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Personal Information")) {
-                    TextField("Name", text: $name)
-                    TextField("Age", text: $age)
-                        .keyboardType(.numberPad)
-                    TextField("Height (cm)", text: $height)
-                        .keyboardType(.numberPad)
-                    TextField("Weight (kg)", text: $weight)
-                        .keyboardType(.numberPad)
-                }
-                
-                Section(header: Text("Goal")) {
-                    Picker("Goal", selection: $goal) {
-                        ForEach(goals, id: \.self) {
-                            Text($0)
-                        }
-                    }
-                }
-                
-                Button(action: saveProfile) {
-                    Text("Save Profile")
-                        .font(.headline)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .shadow(radius: 5)
-                }
-                .padding(.horizontal)
-            }
-            .navigationTitle("Profile")
-        }
-    }
-    
-    func saveProfile() {
-        // Placeholder function for saving profile
-        print("Profile saved")
     }
 }
 
