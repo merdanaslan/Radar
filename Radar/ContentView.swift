@@ -106,7 +106,7 @@ struct HomeView: View {
                         }
                     }
                     .frame(height: 150) // Increased height
-                    .padding()
+                    .padding(5)
                     .background(Color.white)
                     .cornerRadius(15)
                     .shadow(radius: 10, x: 0, y: 5)
