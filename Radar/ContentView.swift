@@ -97,17 +97,19 @@ struct HomeView: View {
                     }
                     .padding(.top)
                     
-                    HStack(spacing: 5) {
-                        NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
-                        NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
-                        NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
-                        NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
+                    VStack {
+                        HStack(spacing: 5) {
+                            NutrientRingView(value: foodLog.caloriesConsumed, total: dailyCalories, title: "Calories", color: .orange)
+                            NutrientRingView(value: foodLog.carbsConsumed, total: dailyCarbs, title: "Carbs", color: .yellow)
+                            NutrientRingView(value: foodLog.proteinConsumed, total: dailyProtein, title: "Protein", color: .red)
+                            NutrientRingView(value: foodLog.fatConsumed, total: dailyFat, title: "Fat", color: .blue)
+                        }
                     }
-                    .frame(height: 180) // Reduced height
-                    .padding(.horizontal, 5) // Reduced horizontal padding
-                    .padding(.vertical, 10) // Reduced vertical padding
-                    .background(Color(UIColor.systemGray6))
+                    .frame(height: 180)
+                    .padding()
+                    .background(Color.white)
                     .cornerRadius(15)
+                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                     
                     Text("Recently eaten")
                         .font(.headline)
@@ -134,18 +136,18 @@ struct NutrientRingView: View {
         VStack {
             ZStack {
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 6) // Reduced thickness
+                    .stroke(color.opacity(0.2), lineWidth: 6)
                 Circle()
                     .trim(from: 0, to: min(CGFloat(value) / CGFloat(total), 1.0))
-                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round)) // Reduced thickness
+                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: 2) {
-                    Text("\(max(total - value, 0))")
-                        .font(.system(size: 22, weight: .bold)) // Increased font size
+                    Text("\(max(total - value, 0))\(title == "Calories" ? "" : "g")")
+                        .font(.system(size: 18, weight: .bold)) // Reduced font size
                     Text(title)
-                        .font(.system(size: 14)) // Increased font size
+                        .font(.system(size: 12))
                     Text("left")
-                        .font(.system(size: 12)) // Increased font size
+                        .font(.system(size: 10))
                         .foregroundColor(.gray)
                 }
             }
@@ -493,52 +495,76 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                Section(header: Text("Personal Information")) {
-                    TextField("Name", text: $userName)
-                    TextField("Height (cm)", text: $userHeight)
-                        .keyboardType(.numberPad)
-                    TextField("Weight (kg)", text: $userWeight)
-                        .keyboardType(.numberPad)
+            ScrollView {
+                VStack(spacing: 20) {
+                    personalInfoSection
+                    dailyGoalsSection
                 }
-                
-                Section(header: Text("Daily Goals")) {
-                    HStack {
-                        Text("Calories")
-                        Spacer()
-                        TextField("", value: $dailyCalories, formatter: NumberFormatter())
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                    }
-                    HStack {
-                        Text("Protein (g)")
-                        Spacer()
-                        TextField("", value: $dailyProtein, formatter: NumberFormatter())
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                    }
-                    HStack {
-                        Text("Carbs (g)")
-                        Spacer()
-                        TextField("", value: $dailyCarbs, formatter: NumberFormatter())
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                    }
-                    HStack {
-                        Text("Fat (g)")
-                        Spacer()
-                        TextField("", value: $dailyFat, formatter: NumberFormatter())
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 100)
-                    }
-                }
+                .padding()
             }
-            .listStyle(InsetGroupedListStyle())
+            .background(Color.white)
             .navigationTitle("Settings")
+        }
+    }
+    
+    private var personalInfoSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Personal Information")
+                .font(.headline)
+            
+            TextField("Name", text: $userName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(10)
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(8)
+            
+            TextField("Height (cm)", text: $userHeight)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.numberPad)
+                .padding(10)
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(8)
+            
+            TextField("Weight (kg)", text: $userWeight)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.numberPad)
+                .padding(10)
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(8)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+    
+    private var dailyGoalsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Daily Goals")
+                .font(.headline)
+            
+            goalRow(title: "Calories", value: $dailyCalories)
+            goalRow(title: "Protein (g)", value: $dailyProtein)
+            goalRow(title: "Carbs (g)", value: $dailyCarbs)
+            goalRow(title: "Fat (g)", value: $dailyFat)
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+    
+    private func goalRow(title: String, value: Binding<Int>) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField("", value: value, formatter: NumberFormatter())
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
+                .padding(10)
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(8)
         }
     }
 }
