@@ -1055,11 +1055,11 @@ struct CoinRow: View {
 struct CompeteView: View {
     @EnvironmentObject var foodLog: FoodLog
     @State private var friends: [Friend] = [
-        Friend(name: "Emma", calories: 1916, goal: 2000),
-        Friend(name: "Liam", calories: 1235, goal: 2000),
-        Friend(name: "Olivia", calories: 1730, goal: 2000),
-        Friend(name: "Noah", calories: 1850, goal: 2000),
-        Friend(name: "Ava", calories: 1540, goal: 2000)
+        Friend(name: "Emma", calories: 1916, goal: 2000, wagerAmount: 100),
+        Friend(name: "Liam", calories: 1235, goal: 2000, wagerAmount: 50),
+        Friend(name: "Olivia", calories: 1730, goal: 2000, wagerAmount: 75),
+        Friend(name: "Noah", calories: 1850, goal: 2000, wagerAmount: 120),
+        Friend(name: "Ava", calories: 1540, goal: 2000, wagerAmount: 80)
     ]
     @State private var selectedPeriod = 0
     @State private var periods = ["Today", "Yesterday", "Week", "Month"]
@@ -1107,8 +1107,10 @@ struct CompeteView: View {
                             .padding(.horizontal)
                         
                         ForEach(friends.sorted { $0.calories > $1.calories }.enumerated().map({ $0 }), id: \.element.id) { index, friend in
-                            FriendRow(friend: friend, rank: index + 1)
-                                .padding(.horizontal)
+                            NavigationLink(destination: FriendComparisonView(friend: friend)) {
+                                FriendRow(friend: friend, rank: index + 1)
+                                    .padding(.horizontal)
+                            }
                             Divider()
                         }
                         
@@ -1144,6 +1146,7 @@ struct Friend: Identifiable {
     let name: String
     let calories: Int
     let goal: Int
+    let wagerAmount: Int // New property for wager amount
 }
 
 struct FriendRow: View {
@@ -1277,6 +1280,112 @@ struct ReferralView: View {
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })
+        }
+    }
+}
+
+struct FriendComparisonView: View {
+    let friend: Friend
+    @EnvironmentObject var foodLog: FoodLog
+    @State private var selectedPeriod = 0
+    private let periods = ["Today", "Yesterday", "Week", "Month"]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Period Selector
+                Picker("Time Period", selection: $selectedPeriod) {
+                    ForEach(0..<periods.count) { index in
+                        Text(periods[index]).tag(index)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+
+                // Comparison View
+                HStack(spacing: 30) {
+                    ComparisonColumn(name: "You", calories: foodLog.caloriesConsumed, carbs: foodLog.carbsConsumed, protein: foodLog.proteinConsumed, fat: foodLog.fatConsumed)
+                    Text("VS")
+                        .font(.title)
+                        .fontWeight(.bold)
+                    ComparisonColumn(name: friend.name, calories: friend.calories, carbs: 0, protein: 0, fat: 0) // You might want to add these properties to the Friend struct
+                }
+                .padding()
+                .background(Color.white)
+                .cornerRadius(10)
+                .shadow(radius: 2)
+
+                // Statistics
+                VStack(alignment: .leading, spacing: 10) {
+                    StatRow(title: "steps today", you: "245", friend: "5,754")
+                    StatRow(title: "yesterday", you: "254", friend: "10,003")
+                    StatRow(title: "last 7 days avg", you: "3,459,0", friend: "10,055,7")
+                    StatRow(title: "best day", you: "8,009", friend: "10,780")
+                    StatRow(title: "best week", you: "15,640", friend: "71,509")
+                    StatRow(title: "days won", you: "0", friend: "7")
+                    StatRow(title: "longest win streak", you: "0", friend: "7")
+                }
+                .padding()
+                .background(Color.white)
+                .cornerRadius(10)
+                .shadow(radius: 2)
+
+                // Wager Amount
+                Text("Wager Amount: \(friend.wagerAmount) points")
+                    .font(.headline)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 2)
+
+                // Action Buttons
+                HStack {
+                    ActionButton(title: "Cheer", icon: "👍")
+                    ActionButton(title: "Taunt", icon: "😜")
+                    ActionButton(title: "Nudge", icon: "👉")
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("You vs \(friend.name)")
+        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+    }
+}
+
+struct ComparisonColumn: View {
+    let name: String
+    let calories: Int
+    let carbs: Int
+    let protein: Int
+    let fat: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(name)
+                .font(.headline)
+            Text("\(calories)")
+                .font(.title)
+                .fontWeight(.bold)
+            Text("\(carbs)g carbs")
+            Text("\(protein)g protein")
+            Text("\(fat)g fat")
+        }
+    }
+}
+
+struct StatRow: View {
+    let title: String
+    let you: String
+    let friend: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .frame(width: 120, alignment: .leading)
+            Spacer()
+            Text(you)
+            Spacer()
+            Text(friend)
         }
     }
 }
