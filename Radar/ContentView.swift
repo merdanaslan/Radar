@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showImagePicker = false
     @State private var capturedImage: UIImage?
     @State private var isLoading = false
+    @State private var showMenu = false
     
     var body: some View {
         ZStack {
@@ -49,16 +50,41 @@ struct ContentView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button(action: {
-                        showImagePicker = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 60, height: 60)
-                            .background(Color.black)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
+                    ZStack {
+                        // Pop-up menu
+                        if showMenu {
+                            VStack(spacing: 15) {
+                                MenuButton(icon: "camera", action: {
+                                    showImagePicker = true
+                                    showMenu = false
+                                })
+                                MenuButton(icon: "cube", text: "3D", action: {
+                                    // 3D functionality to be implemented
+                                    showMenu = false
+                                })
+                                MenuButton(icon: "text.bubble", action: {
+                                    // Text functionality to be implemented
+                                    showMenu = false
+                                })
+                            }
+                            .transition(.scale)
+                            .offset(y: -140) // Adjust this value as needed
+                        }
+                        
+                        // Main plus button
+                        Button(action: {
+                            withAnimation {
+                                showMenu.toggle()
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.black)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 80)
@@ -1526,6 +1552,33 @@ struct FriendActionButton: View {
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.black)
+        }
+    }
+}
+
+struct MenuButton: View {
+    let icon: String
+    var text: String? = nil
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: 50, height: 50)
+                    .shadow(radius: 4)
+                
+                if let text = text {
+                    Text(text)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                }
+            }
         }
     }
 }
