@@ -1055,12 +1055,15 @@ struct CoinRow: View {
 struct CompeteView: View {
     @EnvironmentObject var foodLog: FoodLog
     @State private var friends: [Friend] = [
-        Friend(name: "Active Bot", calories: 1916, goal: 2000),
-        Friend(name: "Chill Bot", calories: 1235, goal: 2000),
-        Friend(name: "merdan", calories: 1730, goal: 2000)
+        Friend(name: "Emma", calories: 1916, goal: 2000),
+        Friend(name: "Liam", calories: 1235, goal: 2000),
+        Friend(name: "Olivia", calories: 1730, goal: 2000),
+        Friend(name: "Noah", calories: 1850, goal: 2000),
+        Friend(name: "Ava", calories: 1540, goal: 2000)
     ]
     @State private var selectedPeriod = 0
     @State private var periods = ["Today", "Yesterday", "Week", "Month"]
+    @State private var showingChatView = false
 
     var body: some View {
         NavigationView {
@@ -1077,7 +1080,7 @@ struct CompeteView: View {
 
                     // Nutrition Summary
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("avg calories in \(periods[selectedPeriod])")
+                        Text("calories in \(periods[selectedPeriod])")
                             .font(.headline)
                         Text("\(foodLog.caloriesConsumed)")
                             .font(.system(size: 40, weight: .bold))
@@ -1101,9 +1104,12 @@ struct CompeteView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Friends")
                             .font(.headline)
+                            .padding(.horizontal)
                         
-                        ForEach(friends.sorted { $0.calories > $1.calories }) { friend in
-                            FriendRow(friend: friend)
+                        ForEach(friends.sorted { $0.calories > $1.calories }.enumerated().map({ $0 }), id: \.element.id) { index, friend in
+                            FriendRow(friend: friend, rank: index + 1)
+                                .padding(.horizontal)
+                            Divider()
                         }
                         
                         Button(action: { /* Add friend action */ }) {
@@ -1112,19 +1118,23 @@ struct CompeteView: View {
                                 Text("Invite your friends")
                             }
                         }
+                        .padding()
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .shadow(radius: 2)
-
-                    // Challenges Section (unchanged)
-                    ChallengesSection(showingCreateChallenge: .constant(false))
                 }
                 .padding()
             }
             .navigationTitle("Compete")
+            .navigationBarItems(trailing:
+                Button(action: {
+                    showingChatView = true
+                }) {
+                    Image(systemName: "bell.fill")
+                }
+            )
             .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+        }
+        .sheet(isPresented: $showingChatView) {
+            ChatView()
         }
     }
 }
@@ -1138,9 +1148,13 @@ struct Friend: Identifiable {
 
 struct FriendRow: View {
     let friend: Friend
+    let rank: Int
 
     var body: some View {
         HStack {
+            Text("\(rank)")
+                .font(.headline)
+                .frame(width: 30)
             Text(friend.name)
             Spacer()
             VStack(alignment: .trailing) {
@@ -1154,31 +1168,42 @@ struct FriendRow: View {
     }
 }
 
-struct ChallengesSection: View {
-    @Binding var showingCreateChallenge: Bool
-    
+struct ChatView: View {
+    @State private var chats = [
+        Chat(name: "Emma", lastMessage: "Great job on your calories today!", time: "2m ago"),
+        Chat(name: "Liam", lastMessage: "Want to start a new challenge?", time: "1h ago"),
+        Chat(name: "Olivia", lastMessage: "How's your protein intake going?", time: "3h ago"),
+        Chat(name: "Noah", lastMessage: "Let's compare our progress!", time: "Yesterday"),
+        Chat(name: "Ava", lastMessage: "Congrats on winning the last challenge!", time: "2d ago")
+    ]
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Challenges")
-                .font(.headline)
-            
-            Button("Weekly Challenge") {
-                // Action for weekly challenge
+        NavigationView {
+            List(chats) { chat in
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(chat.name)
+                            .font(.headline)
+                        Text(chat.lastMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Text(chat.time)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
-            
-            Button("Monthly Tournament") {
-                // Action for monthly tournament
-            }
-            
-            Button(action: { showingCreateChallenge = true }) {
-                Label("Create Challenge", systemImage: "flag.fill")
-            }
+            .navigationTitle("Chats")
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 2)
     }
+}
+
+struct Chat: Identifiable {
+    let id = UUID()
+    let name: String
+    let lastMessage: String
+    let time: String
 }
 
 struct ReferralView: View {
