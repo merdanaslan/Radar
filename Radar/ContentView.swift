@@ -1006,12 +1006,12 @@ struct ActionButton: View {
     
     var body: some View {
         VStack {
-            Image(systemName: icon)
+            Text(icon)
                 .font(.system(size: 24))
-                .foregroundColor(.white)
                 .frame(width: 50, height: 50)
-                .background(Color.black)
+                .background(Color.white)
                 .clipShape(Circle())
+                .shadow(radius: 2)
             
             Text(title)
                 .font(.caption)
@@ -1055,11 +1055,11 @@ struct CoinRow: View {
 struct CompeteView: View {
     @EnvironmentObject var foodLog: FoodLog
     @State private var friends: [Friend] = [
-        Friend(name: "Emma", calories: 1916, goal: 2000, wagerAmount: 100),
-        Friend(name: "Liam", calories: 1235, goal: 2000, wagerAmount: 50),
-        Friend(name: "Olivia", calories: 1730, goal: 2000, wagerAmount: 75),
-        Friend(name: "Noah", calories: 1850, goal: 2000, wagerAmount: 120),
-        Friend(name: "Ava", calories: 1540, goal: 2000, wagerAmount: 80)
+        Friend(name: "Emma", calories: 1916, carbs: 220, protein: 95, fat: 70, goal: 2000, wagerAmount: 100),
+        Friend(name: "Liam", calories: 1235, carbs: 150, protein: 80, fat: 45, goal: 2000, wagerAmount: 50),
+        Friend(name: "Olivia", calories: 1730, carbs: 200, protein: 90, fat: 60, goal: 2000, wagerAmount: 75),
+        Friend(name: "Noah", calories: 1850, carbs: 210, protein: 100, fat: 65, goal: 2000, wagerAmount: 120),
+        Friend(name: "Ava", calories: 1540, carbs: 180, protein: 85, fat: 55, goal: 2000, wagerAmount: 80)
     ]
     @State private var selectedPeriod = 0
     @State private var periods = ["Today", "Yesterday", "Week", "Month"]
@@ -1145,8 +1145,11 @@ struct Friend: Identifiable {
     let id = UUID()
     let name: String
     let calories: Int
+    let carbs: Int
+    let protein: Int
+    let fat: Int
     let goal: Int
-    let wagerAmount: Int // New property for wager amount
+    let wagerAmount: Int
 }
 
 struct FriendRow: View {
@@ -1308,7 +1311,7 @@ struct FriendComparisonView: View {
                     Text("VS")
                         .font(.title)
                         .fontWeight(.bold)
-                    ComparisonColumn(name: friend.name, calories: friend.calories, carbs: 0, protein: 0, fat: 0) // You might want to add these properties to the Friend struct
+                    ComparisonColumn(name: friend.name, calories: friend.calories, carbs: friend.carbs, protein: friend.protein, fat: friend.fat)
                 }
                 .padding()
                 .background(Color.white)
@@ -1317,18 +1320,15 @@ struct FriendComparisonView: View {
 
                 // Statistics
                 VStack(alignment: .leading, spacing: 10) {
-                    StatRow(title: "steps today", you: "245", friend: "5,754")
-                    StatRow(title: "yesterday", you: "254", friend: "10,003")
-                    StatRow(title: "last 7 days avg", you: "3,459,0", friend: "10,055,7")
-                    StatRow(title: "best day", you: "8,009", friend: "10,780")
-                    StatRow(title: "best week", you: "15,640", friend: "71,509")
-                    StatRow(title: "days won", you: "0", friend: "7")
-                    StatRow(title: "longest win streak", you: "0", friend: "7")
+                    StatRow(title: "calories today", you: "1245", friend: "1754")
+                    StatRow(title: "yesterday", you: "1354", friend: "2003")
+                    StatRow(title: "last 7 days avg", you: "1459", friend: "1855")
+                    StatRow(title: "best day", you: "2009", friend: "2180")
+                    StatRow(title: "best week", you: "15640", friend: "17509")
+                    StatRow(title: "days won", you: "2", friend: "5")
+                    StatRow(title: "longest win streak", you: "2", friend: "4")
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(10)
-                .shadow(radius: 2)
+                .padding(.horizontal)
 
                 // Wager Amount
                 Text("Wager Amount: \(friend.wagerAmount) points")
