@@ -1053,69 +1053,104 @@ struct CoinRow: View {
 }
 
 struct CompeteView: View {
+    @EnvironmentObject var foodLog: FoodLog
     @State private var friends: [Friend] = [
-        Friend(name: "Alice", points: 1200),
-        Friend(name: "Bob", points: 980),
-        Friend(name: "Charlie", points: 1100)
+        Friend(name: "Active Bot", calories: 1916, goal: 2000),
+        Friend(name: "Chill Bot", calories: 1235, goal: 2000),
+        Friend(name: "merdan", calories: 1730, goal: 2000)
     ]
-    @State private var showingAddFriend = false
-    @State private var showingCreateChallenge = false
+    @State private var selectedPeriod = 0
+    @State private var periods = ["Today", "Yesterday", "Week", "Month"]
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                HeaderView(title: "Compete")
-                
-                FriendsSection(friends: friends, showingAddFriend: $showingAddFriend)
-                
-                ChallengesSection(showingCreateChallenge: $showingCreateChallenge)
-                
-                LeaderboardSection(friends: friends)
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Period Selector
+                    Picker("Time Period", selection: $selectedPeriod) {
+                        ForEach(0..<periods.count) { index in
+                            Text(periods[index]).tag(index)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
+
+                    // Nutrition Summary
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("avg calories in \(periods[selectedPeriod])")
+                            .font(.headline)
+                        Text("\(foodLog.caloriesConsumed)")
+                            .font(.system(size: 40, weight: .bold))
+                        HStack {
+                            Text("\(foodLog.carbsConsumed)g carbs")
+                            Text("•")
+                            Text("\(foodLog.proteinConsumed)g protein")
+                            Text("•")
+                            Text("\(foodLog.fatConsumed)g fat")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 2)
+
+                    // Friends Section
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Friends")
+                            .font(.headline)
+                        
+                        ForEach(friends.sorted { $0.calories > $1.calories }) { friend in
+                            FriendRow(friend: friend)
+                        }
+                        
+                        Button(action: { /* Add friend action */ }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Invite your friends")
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 2)
+
+                    // Challenges Section (unchanged)
+                    ChallengesSection(showingCreateChallenge: .constant(false))
+                }
+                .padding()
             }
-            .padding()
-        }
-        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
-        .sheet(isPresented: $showingAddFriend) {
-            AddFriendView()
-        }
-        .sheet(isPresented: $showingCreateChallenge) {
-            CreateChallengeView()
+            .navigationTitle("Compete")
+            .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
         }
     }
 }
 
-struct HeaderView: View {
-    let title: String
-    
-    var body: some View {
-        Text(title)
-            .font(.largeTitle)
-            .fontWeight(.bold)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
+struct Friend: Identifiable {
+    let id = UUID()
+    let name: String
+    let calories: Int
+    let goal: Int
 }
 
-struct FriendsSection: View {
-    let friends: [Friend]
-    @Binding var showingAddFriend: Bool
-    
+struct FriendRow: View {
+    let friend: Friend
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Friends")
-                .font(.headline)
-            
-            ForEach(friends) { friend in
-                FriendRow(friend: friend)
-            }
-            
-            Button(action: { showingAddFriend = true }) {
-                Label("Add Friend", systemImage: "person.badge.plus")
+        HStack {
+            Text(friend.name)
+            Spacer()
+            VStack(alignment: .trailing) {
+                Text("\(friend.calories)")
+                    .font(.headline)
+                Text("\(friend.goal) goal")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 2)
     }
 }
 
@@ -1143,86 +1178,6 @@ struct ChallengesSection: View {
         .background(Color.white)
         .cornerRadius(10)
         .shadow(radius: 2)
-    }
-}
-
-struct LeaderboardSection: View {
-    let friends: [Friend]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Leaderboard")
-                .font(.headline)
-            
-            ForEach(friends.sorted { $0.points > $1.points }) { friend in
-                FriendRow(friend: friend)
-            }
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 2)
-    }
-}
-
-struct Friend: Identifiable {
-    let id = UUID()
-    let name: String
-    let points: Int
-}
-
-struct FriendRow: View {
-    let friend: Friend
-
-    var body: some View {
-        HStack {
-            Text(friend.name)
-            Spacer()
-            Text("\(friend.points) pts")
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
-struct AddFriendView: View {
-    @State private var friendName = ""
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            Form {
-                TextField("Friend's Name", text: $friendName)
-                Button("Add Friend") {
-                    // Add friend logic here
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }
-            .navigationTitle("Add Friend")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-        }
-    }
-}
-
-struct CreateChallengeView: View {
-    @State private var challengeName = ""
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            Form {
-                TextField("Challenge Name", text: $challengeName)
-                Button("Create Challenge") {
-                    // Create challenge logic here
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }
-            .navigationTitle("Create Challenge")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-        }
     }
 }
 
