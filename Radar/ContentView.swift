@@ -115,7 +115,9 @@ struct HomeView: View {
                         .font(.headline)
                     
                     ForEach(foodLog.entries.prefix(5)) { entry in
-                        RecentlyEatenItemView(entry: entry)
+                        NavigationLink(destination: FoodDetailView(entry: entry)) {
+                            RecentlyEatenItemView(entry: entry)
+                        }
                     }
                 }
                 .padding()
@@ -239,7 +241,9 @@ struct AnalyticsView: View {
                             .font(.headline)
                         
                         ForEach(entriesForSelectedDate, id: \.id) { entry in
-                            FoodEntryCard(entry: entry)
+                            NavigationLink(destination: FoodDetailView(entry: entry)) {
+                                FoodEntryCard(entry: entry)
+                            }
                         }
                     }
                 }
@@ -979,7 +983,7 @@ struct WalletView: View {
                     .padding(.top)
                     
                     HStack(spacing: 10) {
-                        ActionButton(title: "Transfer", icon: "arrow.left.arrow.right")
+                        ActionButton(title: "Transfer", icon: "arrow.right")
                         ActionButton(title: "Buy", icon: "plus")
                         ActionButton(title: "Trade", icon: "arrow.2.squarepath")
                     }
@@ -1387,5 +1391,58 @@ struct StatRow: View {
             Spacer()
             Text(friend)
         }
+    }
+}
+
+struct FoodDetailView: View {
+    let entry: FoodEntry
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if let image = entry.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .cornerRadius(10)
+                }
+                
+                Text(entry.foodName)
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                HStack {
+                    NutrientBadge(value: entry.calories, unit: "cal", color: .orange)
+                    NutrientBadge(value: entry.carbs, unit: "g", color: .yellow)
+                    NutrientBadge(value: entry.protein, unit: "g", color: .red)
+                    NutrientBadge(value: entry.fat, unit: "g", color: .blue)
+                }
+                
+                Text("Ingredients")
+                    .font(.headline)
+                Text("Ingredients list would go here")
+                    .foregroundColor(.gray)
+                
+                Text("Health Score")
+                    .font(.headline)
+                Text("6/10")
+                    .foregroundColor(.green)
+                
+                Button(action: {
+                    // Action to edit the entry
+                }) {
+                    Text("Edit Entry")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("Food Details")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
