@@ -990,9 +990,9 @@ struct WalletView: View {
                     
                     // Updated HStack with closer spacing
                     HStack(spacing: 20) {
-                        ActionButton(title: "Transfer", icon: "arrow.right")
-                        ActionButton(title: "Buy", icon: "plus")
-                        ActionButton(title: "Trade", icon: "arrow.2.squarepath")
+                        WalletActionButton(title: "Transfer", icon: "arrow.right")
+                        WalletActionButton(title: "Buy", icon: "plus")
+                        WalletActionButton(title: "Trade", icon: "arrow.2.squarepath")
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal)
@@ -1013,7 +1013,8 @@ struct WalletView: View {
     }
 }
 
-struct ActionButton: View {
+// For Wallet actions
+struct WalletActionButton: View {
     let title: String
     let icon: String
     
@@ -1336,7 +1337,7 @@ struct FriendComparisonView: View {
 
                 // Statistics
                 VStack(alignment: .leading, spacing: 10) {
-                    StatRow(title: "calories today", you: "1245", friend: "1754")
+                    StatRow(title: "calories today", you: "\(foodLog.caloriesConsumed)", friend: "\(friend.calories)")
                     StatRow(title: "yesterday", you: "1354", friend: "2003")
                     StatRow(title: "last 7 days avg", you: "1459", friend: "1855")
                     StatRow(title: "best day", you: "2009", friend: "2180")
@@ -1356,9 +1357,9 @@ struct FriendComparisonView: View {
 
                 // Action Buttons
                 HStack {
-                    ActionButton(title: "Cheer", icon: "👍")
-                    ActionButton(title: "Taunt", icon: "😜")
-                    ActionButton(title: "Nudge", icon: "👉")
+                    FriendActionButton(title: "Cheer", icon: "👍")
+                    FriendActionButton(title: "Taunt", icon: "😜")
+                    FriendActionButton(title: "Nudge", icon: "👉")
                 }
             }
             .padding()
@@ -1503,6 +1504,28 @@ struct HealthScoreBar: View {
         case 4...6: return .yellow
         case 7...10: return .green
         default: return .gray
+        }
+    }
+}
+
+// For Friend Comparison actions
+struct FriendActionButton: View {
+    let title: String
+    let icon: String
+    
+    var body: some View {
+        VStack {
+            Text(icon)
+                .font(.system(size: 24))
+                .frame(width: 60, height: 60)
+                .background(Color.white)
+                .clipShape(Circle())
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+            
+            Text(title)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.black)
         }
     }
 }
