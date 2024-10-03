@@ -982,11 +982,14 @@ struct WalletView: View {
                     }
                     .padding(.top)
                     
-                    HStack(spacing: 10) {
+                    // Updated HStack with closer spacing
+                    HStack(spacing: 20) {
                         ActionButton(title: "Transfer", icon: "arrow.right")
                         ActionButton(title: "Buy", icon: "plus")
                         ActionButton(title: "Trade", icon: "arrow.2.squarepath")
                     }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal)
                     
                     Text("Your Coins")
                         .font(.headline)
@@ -1010,15 +1013,18 @@ struct ActionButton: View {
     
     var body: some View {
         VStack {
-            Text(icon)
+            Image(systemName: icon)
                 .font(.system(size: 24))
-                .frame(width: 50, height: 50)
-                .background(Color.white)
+                .foregroundColor(.white)
+                .frame(width: 60, height: 60)
+                .background(Color.black)
                 .clipShape(Circle())
-                .shadow(radius: 2)
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
             
             Text(title)
                 .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.black)
         }
     }
 }
