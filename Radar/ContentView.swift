@@ -25,13 +25,13 @@ struct ContentView: View {
                     }
                     .tag(1)
                 
-                Text("Battle")
+                CompeteView()
                     .tabItem {
-                        Label("Battle", systemImage: "trophy.fill")
+                        Label("Compete", systemImage: "trophy.fill")
                     }
                     .tag(2)
                 
-                WalletView() // New WalletView
+                WalletView()
                     .tabItem {
                         Label("Wallet", systemImage: "wallet.pass")
                     }
@@ -495,6 +495,8 @@ struct NutrientBadge: View {
 }
 
 struct SettingsView: View {
+    @State private var showingReferralView = false
+
     var body: some View {
         NavigationView {
             List {
@@ -526,9 +528,20 @@ struct SettingsView: View {
                         SettingsRow(title: "Integrations", iconName: "link")
                     }
                 }
+                
+                Section(header: Text("Referral")) {
+                    Button(action: {
+                        showingReferralView = true
+                    }) {
+                        SettingsRow(title: "Invite Friends", iconName: "person.2.fill")
+                    }
+                }
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("More")
+            .sheet(isPresented: $showingReferralView) {
+                ReferralView()
+            }
         }
     }
     
@@ -657,11 +670,11 @@ struct ImagePicker: UIViewControllerRepresentable {
                             self.parent.foodLog.addEntry(entry)
                         case .failure(let error):
                             print("Failed to analyze image: \(error.localizedDescription)")
-                            // Show a simplified alert to the user
-                            if let window = UIApplication.shared.windows.first,
+                            // Show an alert to the user
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                               let window = windowScene.windows.first,
                                let rootViewController = window.rootViewController {
-                                let alertMessage = "We couldn't identify the food in this image. Please try again with a clearer photo or manually enter the food details."
-                                let alert = UIAlertController(title: "Oops!", message: alertMessage, preferredStyle: .alert)
+                                let alert = UIAlertController(title: "Image Analysis Failed", message: error.localizedDescription, preferredStyle: .alert)
                                 alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
                                 rootViewController.present(alert, animated: true, completion: nil)
                             }
@@ -975,7 +988,7 @@ struct WalletView: View {
                         .font(.headline)
                         .padding(.top)
                     
-                    CoinRow(name: "SOL", fullName: "Solana", amount: "10.5", value: "$210.00")
+                    CoinRow(name: "SOL", fullName: "Solana", amount: "1.5", value: "$30.00")
                     CoinRow(name: "USDC", fullName: "USD Coin", amount: "100.0", value: "$100.00")
                     // Add more coin rows as needed
                 }
@@ -1036,5 +1049,254 @@ struct CoinRow: View {
         .background(Color.white)
         .cornerRadius(10)
         .consistentShadow()
+    }
+}
+
+struct CompeteView: View {
+    @State private var friends: [Friend] = [
+        Friend(name: "Alice", points: 1200),
+        Friend(name: "Bob", points: 980),
+        Friend(name: "Charlie", points: 1100)
+    ]
+    @State private var showingAddFriend = false
+    @State private var showingCreateChallenge = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                HeaderView(title: "Compete")
+                
+                FriendsSection(friends: friends, showingAddFriend: $showingAddFriend)
+                
+                ChallengesSection(showingCreateChallenge: $showingCreateChallenge)
+                
+                LeaderboardSection(friends: friends)
+            }
+            .padding()
+        }
+        .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+        .sheet(isPresented: $showingAddFriend) {
+            AddFriendView()
+        }
+        .sheet(isPresented: $showingCreateChallenge) {
+            CreateChallengeView()
+        }
+    }
+}
+
+struct HeaderView: View {
+    let title: String
+    
+    var body: some View {
+        Text(title)
+            .font(.largeTitle)
+            .fontWeight(.bold)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct FriendsSection: View {
+    let friends: [Friend]
+    @Binding var showingAddFriend: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Friends")
+                .font(.headline)
+            
+            ForEach(friends) { friend in
+                FriendRow(friend: friend)
+            }
+            
+            Button(action: { showingAddFriend = true }) {
+                Label("Add Friend", systemImage: "person.badge.plus")
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct ChallengesSection: View {
+    @Binding var showingCreateChallenge: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Challenges")
+                .font(.headline)
+            
+            Button("Weekly Challenge") {
+                // Action for weekly challenge
+            }
+            
+            Button("Monthly Tournament") {
+                // Action for monthly tournament
+            }
+            
+            Button(action: { showingCreateChallenge = true }) {
+                Label("Create Challenge", systemImage: "flag.fill")
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct LeaderboardSection: View {
+    let friends: [Friend]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Leaderboard")
+                .font(.headline)
+            
+            ForEach(friends.sorted { $0.points > $1.points }) { friend in
+                FriendRow(friend: friend)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+}
+
+struct Friend: Identifiable {
+    let id = UUID()
+    let name: String
+    let points: Int
+}
+
+struct FriendRow: View {
+    let friend: Friend
+
+    var body: some View {
+        HStack {
+            Text(friend.name)
+            Spacer()
+            Text("\(friend.points) pts")
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct AddFriendView: View {
+    @State private var friendName = ""
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            Form {
+                TextField("Friend's Name", text: $friendName)
+                Button("Add Friend") {
+                    // Add friend logic here
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
+            .navigationTitle("Add Friend")
+            .navigationBarItems(trailing: Button("Cancel") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
+    }
+}
+
+struct CreateChallengeView: View {
+    @State private var challengeName = ""
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            Form {
+                TextField("Challenge Name", text: $challengeName)
+                Button("Create Challenge") {
+                    // Create challenge logic here
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
+            .navigationTitle("Create Challenge")
+            .navigationBarItems(trailing: Button("Cancel") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
+    }
+}
+
+struct ReferralView: View {
+    @State private var referralCode = "1bXNd"
+    @State private var referralLink = "https://www...Code=1bXNd"
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Referral Code")
+                    .font(.headline)
+                
+                HStack {
+                    Text(referralCode)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Button(action: {
+                        UIPasteboard.general.string = referralCode
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.black) // Changed from blue to black
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                
+                Text("Referral link")
+                    .font(.headline)
+                
+                HStack {
+                    Text(referralLink)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    Button(action: {
+                        UIPasteboard.general.string = referralLink
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.black) // Changed from blue to black
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                
+                Button(action: {
+                    // Implement invite friends action here
+                }) {
+                    Text("Invite Friends")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black) // Changed from blue to black
+                        .cornerRadius(10)
+                }
+                .padding(.top)
+                
+                Spacer()
+                
+                Text("Find out how your referral works")
+                    .font(.footnote)
+                    .foregroundColor(.black) // Changed from blue to black
+            }
+            .padding()
+            .navigationTitle("Referral")
+            .navigationBarItems(trailing: Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
     }
 }
