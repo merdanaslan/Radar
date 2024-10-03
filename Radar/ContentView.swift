@@ -670,7 +670,9 @@ struct ImagePicker: UIViewControllerRepresentable {
                                                   carbs: foodAnalysis.carbs,
                                                   fat: foodAnalysis.fat,
                                                   image: image,
-                                                  timestamp: Date())
+                                                  timestamp: Date(),
+                                                  healthScore: foodAnalysis.healthScore,
+                                                  ingredients: foodAnalysis.ingredients)
                             self.parent.foodLog.addEntry(entry)
                         case .failure(let error):
                             print("Failed to analyze image: \(error.localizedDescription)")
@@ -750,6 +752,8 @@ struct FoodEntry: Identifiable {
     let fat: Int
     let image: UIImage?
     let timestamp: Date
+    let healthScore: Int
+    let ingredients: String?
 }
 
 struct DailyLogView: View {
@@ -829,7 +833,7 @@ class OpenAIService {
                     "content": [
                         [
                             "type": "text",
-                            "text": "Analyze this image and provide the name of the food and its nutritional information. If there are multiple food items, sum up their nutritional values. Respond in the following JSON format: {\"foodName\": \"Name of the food(s)\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}. If the image doesn't contain food or nutritional information, return {\"foodName\": \"No food detected\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0}."
+                            "text": "Analyze this image and provide the name of the food and its nutritional information. If there are multiple food items, sum up their nutritional values. Also, provide a health score from 1 to 10, where 1 is very unhealthy and 10 is very healthy. Include a list of main ingredients. Respond in the following JSON format: {\"foodName\": \"Name of the food(s)\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0, \"healthScore\": 0, \"ingredients\": \"comma-separated list of main ingredients\"}. If the image doesn't contain food or nutritional information, return {\"foodName\": \"No food detected\", \"calories\": 0, \"protein\": 0, \"carbs\": 0, \"fat\": 0, \"healthScore\": 0, \"ingredients\": \"\"}."
                         ],
                         [
                             "type": "image_url",
@@ -922,6 +926,8 @@ struct FoodAnalysis: Codable {
     let protein: Int
     let carbs: Int
     let fat: Int
+    let healthScore: Int
+    let ingredients: String
 }
 
 struct ModernLoadingView: View {
@@ -1409,46 +1415,94 @@ struct FoodDetailView: View {
                 if let image = entry.image {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(10)
+                        .scaledToFill()
+                        .frame(height: 250)
+                        .clipped()
                 }
                 
                 Text(entry.foodName)
                     .font(.title)
                     .fontWeight(.bold)
+                    .padding(.horizontal)
                 
-                HStack {
-                    NutrientBadge(value: entry.calories, unit: "cal", color: .orange)
-                    NutrientBadge(value: entry.carbs, unit: "g", color: .yellow)
-                    NutrientBadge(value: entry.protein, unit: "g", color: .red)
-                    NutrientBadge(value: entry.fat, unit: "g", color: .blue)
+                HStack(spacing: 10) {
+                    NutrientBox(title: "Calories", value: entry.calories, unit: "")
+                    NutrientBox(title: "Carbs", value: entry.carbs, unit: "g")
+                    NutrientBox(title: "Protein", value: entry.protein, unit: "g")
+                    NutrientBox(title: "Fat", value: entry.fat, unit: "g")
                 }
+                .padding(.horizontal)
                 
-                Text("Ingredients")
-                    .font(.headline)
-                Text("Ingredients list would go here")
-                    .foregroundColor(.gray)
-                
-                Text("Health Score")
-                    .font(.headline)
-                Text("6/10")
-                    .foregroundColor(.green)
-                
-                Button(action: {
-                    // Action to edit the entry
-                }) {
-                    Text("Edit Entry")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Health Score")
+                        .font(.headline)
+                    HStack {
+                        Text("\(entry.healthScore)/10")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Spacer()
+                        HealthScoreBar(score: entry.healthScore)
+                    }
                 }
+                .padding(.horizontal)
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Ingredients")
+                        .font(.headline)
+                    Text(entry.ingredients ?? "No ingredients information available")
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
             }
-            .padding()
         }
         .navigationTitle("Food Details")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct NutrientBox: View {
+    let title: String
+    let value: Int
+    let unit: String
+    
+    var body: some View {
+        VStack {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text("\(value)\(unit)")
+                .font(.headline)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(10)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+}
+
+struct HealthScoreBar: View {
+    let score: Int
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                Rectangle()
+                    .fill(scoreColor)
+                    .frame(width: CGFloat(score) / 10 * geometry.size.width)
+            }
+        }
+        .frame(height: 10)
+        .cornerRadius(5)
+    }
+    
+    var scoreColor: Color {
+        switch score {
+        case 1...3: return .red
+        case 4...6: return .yellow
+        case 7...10: return .green
+        default: return .gray
+        }
     }
 }
