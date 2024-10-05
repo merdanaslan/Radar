@@ -227,10 +227,10 @@ struct RecentlyEatenItemView: View {
                 HStack {
                     Image(systemName: "flame.fill")
                     Text("\(entry.calories) calories")
-                    Text("• \(entry.protein)g")
-                        .foregroundColor(.red)
                     Text("• \(entry.carbs)g")
                         .foregroundColor(.yellow)
+                    Text("• \(entry.protein)g")
+                        .foregroundColor(.red)
                     Text("• \(entry.fat)g")
                         .foregroundColor(.blue)
                 }
@@ -1582,3 +1582,4 @@ struct MenuButton: View {
         }
     }
 }
+
