@@ -1027,7 +1027,7 @@ struct WalletView: View {
                         .font(.headline)
                         .padding(.top)
                     
-                    CoinRow(name: "SOL", fullName: "Solana", amount: "1.5", value: "$30.00")
+                    CoinRow(name: "SOL", fullName: "Solana", amount: "1.5", value: "$218.69")
                     CoinRow(name: "USDC", fullName: "USD Coin", amount: "100.0", value: "$100.00")
                     // Add more coin rows as needed
                 }
